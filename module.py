@@ -1704,7 +1704,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 		
 		
-			plot_directory_name = str(miller_pos_est[i][0]) + str(miller_pos_est[i][1]) + str(miller_pos_est[i][2]) + "_or_" + str(pos_est[i][0]) + "_#_" + str(pos_est[i][1]) + "_#_" + str(pos_est[i][2])
+			plot_directory_name = str(miller_pos_est[i][0]) + str(miller_pos_est[i][1]) + str(miller_pos_est[i][2])
 		
 				
 			subprocess.call("mkdir " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name), shell = True)
@@ -1923,7 +1923,7 @@ def get_slope_ln_intensity_vs_gsqr(gsqr, ln_intensity):
 
 
 
-def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gsqr, gruneisen_uncompressed, debye_temperature_uncompressed, a_lattice, compression_factor, mass, pos, gsqr, uncompressed_pos_est, uncompressed_gsqr_est, plot_name, show_plot, ln_intensity, md_temperature):
+def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gsqr, gruneisen_uncompressed, debye_temperature_uncompressed, a_lattice, compression_factor, mass, pos, gsqr, uncompressed_pos_est, uncompressed_gsqr_est, plot_name, show_plot, ln_intensity, md_temperature_3d, md_temperature_2d):
 
 
 
@@ -2041,7 +2041,7 @@ def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gs
 	
 	
 	
-	ideal_slope_constant_model = - md_temperature/( (estimated_debye_temperature[0] ** 2) * temperature_normalisation_factor)
+	ideal_slope_constant_model = - md_temperature_2d/( (estimated_debye_temperature[0] ** 2) * temperature_normalisation_factor)
 	
 	
 	ideal_line_point_y1 = line(line_point_x1, ideal_slope_constant_model, constant_ln_intensity_vs_gsqr)
@@ -2242,7 +2242,8 @@ def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gs
 	"Pandya -> T = " + str(maximum_temperature_est[1]) + "\n"
 	"Ramakrishnan -> T = " + str(maximum_temperature_est[2]) + "\n"
 	"Walsh -> T = " + str(maximum_temperature_est[3]) + "\n"
-	"\nThe MD temperature = " + str(md_temperature) + "\n"
+	"\nThe 3D MD temperature = " + str(md_temperature_3d) + "\n"
+	"The 2D MD temperature = " + str(md_temperature_2d) + "\n"
 	"From the best fit slope, the mean temperature is T = " + str(central_temperature_mean) + " +/- " + str(central_temperature_stdev) + " K."
 	"\nIf we consider the boundary temperatures as well (something that might look like an experiment), we can get T = " + str(central_temperature_mean) + " +/- " + str(temperature_error) + " K.")
 
@@ -2267,7 +2268,8 @@ def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gs
 	"plot_name = " + str(plot_name) + "\n"
 	"show_plot = " + str(show_plot) + "\n"
 	"ln_intensity = " + str(ln_intensity) + "\n"
-	"md_temperature = " + str(md_temperature) + "\n"
+	"md_temperature_3d = " + str(md_temperature_3d) + "\n"
+	"md_temperature_2d = " + str(md_temperature_2d) + "\n"
 	
 	"\nFunction calc_temperature_xrd returned:\n"
 	"Compression ratio = " + str(compression_ratio) + "\n"
