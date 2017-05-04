@@ -254,7 +254,7 @@ def enforce_rotation_111(pos_est):
 		new = np.dot(rot_z, pos_est[i]) # First matrix multiply the z-rotation with the original position estimate to get "new", an intermediate variable.
 		new_2 = np.dot(rot_x, new) # Then matrix multiply the x-rotation with "new" to get the array version of the rotated peak.
 		rot_pos_est[i] = list(new_2) # Convert this to a list (for compatability with the rest of the code).
-		print "Peak " + str(i) + " of " + str(len(pos_est)-1) + " at " + str(pos_est[i]) + " rotated to " + str(rot_pos_est[i])
+		print "Peak " + str(i + 1) + " of " + str(len(pos_est)) + " at " + str(pos_est[i]) + " rotated to " + str(rot_pos_est[i])
 
 
 
@@ -1027,6 +1027,132 @@ def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_
 	return compressed_pos_est, compressed_gsqr_est, compression_factor
 
 
+##################################################################
+#
+
+def find_actual_peak_centres(pos_est, initial_pos_est, del_kx, del_ky, del_kz, k_steps_accurate, compression_factor, rotated_to_111, run_soh, mass, a_lattice, timestep, make_plots, source):
+
+	import subprocess
+	import numpy as np
+	import os
+	import matplotlib.pyplot as plt
+	
+	
+	if rotated_to_111 == True:
+	
+		k_start = [0] * len(pos_est)
+		k_stop = [0] * len(pos_est)
+		
+		subprocess.call("mkdir soh_accurate_lineouts", shell=True)
+				
+		for i in range(len(pos_est)):
+		
+			k_start[i] = list(pos_est[i])
+			k_stop[i] = list(pos_est[i])
+		
+			k_start[i][0] = 0.99 * (pos_est[i][0] - (del_kx * compression_factor[0]))
+			k_stop[i][0] = 1.01 * (pos_est[i][0] + (del_kx * compression_factor[0]))
+		
+			k_start[i][1] = 0.99 * (pos_est[i][1] - (del_ky * compression_factor[1]))
+			k_stop[i][1] = 1.01 * (pos_est[i][1] + (del_ky * compression_factor[1]))
+		
+			k_start[i][2] = 0.99 * (pos_est[i][2] - (del_kz * compression_factor[2]))
+			k_stop[i][2] = 1.01 * (pos_est[i][2] + (del_kz * compression_factor[2]))
+		
+		
+		
+			current_working_directory = os.getcwd()
+			
+			subprocess.call("mkdir " + str(current_working_directory) + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]), shell=True)	
+
+
+			k_lineout_direction = ["x", "y", "z"]
+
+			#Then we write the soh input file to run the lineouts in each direction.
+			for j in range(len(k_lineout_direction)):
+
+
+
+			
+				k_lineout_file = current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/k" + k_lineout_direction[j] + ".soh"
+
+
+
+
+
+				f = open(k_lineout_file, "w")
+
+
+				f.write("VERBOSE\t\t\t\t\t0\n\n"
+				"FILE_TYPE\t\t\t\tlammps-multi\n"
+				"DATA_FILE\t\t\t\t" + str(source) + "\n"
+				"APPEND_FILE_NAME\t\tk" + str(k_lineout_direction[j]) + "_accurate_lineout\n\n"
+				"PLOT_OUTPUT\t\t\t\tpdf\n\n"
+				"COORDS_SCALED\n"
+				"SET_MASS\t\t" + str(mass) + "\n\n"
+				"SET_A_CELL\t\t\t\t" + str(a_lattice) + "\n\n"
+				"CALC_1D_FT\n\n"
+				"SET_K_START\t\t\t\t" + str(k_start[i][0]) + " " + str(k_start[i][1]) + " " + str(k_start[i][2]) + "\n"
+				"SET_K_STOP\t\t\t\t" + str(k_stop[i][0]) + " " + str(k_stop[i][1]) + " " + str(k_stop[i][2]) + "\n"
+				"SET_NK\t\t\t\t\t" + str(k_steps_accurate) + "\n")
+
+
+				f.close() # Remember to close the file before you try to run it!
+
+
+
+
+
+
+
+				command_lineout = 'mpiexec -np 24 sonOfHoward ' + k_lineout_file # Stores the bash command we will run. If we want to make it faster, we can increase the processor_number here, we just have to make sure we don't get in anyone else's way!
+	
+				if run_soh == True:
+					subprocess.call(command_lineout, shell=True)
+					
+					subprocess.call("mv " + current_working_directory + "/" + str(source) + "." + str(timestep) + ".k" + str(k_lineout_direction[j]) + "_accurate_lineout.ft " + current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/", shell=True )
+	
+	
+	
+	
+		if make_plots == True:
+		
+			k = [0] * len(pos_est)
+		
+			for i in range(len(pos_est)):
+			
+				k[i] = [0,0,0]
+			
+
+		
+				for j in range(len(k[i])):
+
+				
+					location = current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/" 
+					filename = str(source) + "." + str(timestep) + ".k" + str(k_lineout_direction[j]) + "_accurate_lineout.ft"
+					
+					k[i][j], y = np.loadtxt(location + filename, usecols=(j,3), skiprows=1, unpack=True)		
+	
+			
+					plt.scatter(k[i][j], y)
+					
+					plot_name = "k" + str(k_lineout_direction[j] + "_lineout.png")
+					plt.savefig(location + plot_name)
+					plt.close()
+	
+	
+			
+	
+	
+	
+	else:
+	
+		print "rotated_to_111 set to False. Program will now exit, since the implications of this setting haven't been considered yet."
+		exit()
+
+	
+
+	return #accurate_pos_est;
 
 
 
@@ -1034,7 +1160,7 @@ def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_
 # This function creates a box around each point in reciprocal space and performs a fourier transform of the atoms in a lammps .atom file with the reciprocal lattice vectors inside the box. This function creates input files for SoH, then runs SoH for each input file. It takes as input: source (str), pos_est (list), compression_factor (list), initial_hkl_pos_est (list), a_lattice (float), del_kx(float), del_ky(float), del_kz(float), k_steps (int), run_soh (bool), mass (float). It does not produce output variables. Instead it creates files which contain the SoH outputs, including intensities at each point.
 
 
-def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_est, a_lattice, mass, del_kx, del_ky, del_kz, k_steps, run_soh, timestep):
+def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_est, a_lattice, mass, del_kx, del_ky, del_kz, k_steps, k_steps_accurate, run_soh, timestep):
 
 
 
@@ -1066,7 +1192,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	import subprocess
 	import os
 	import numpy
-
+	import copy
 
 
 	current_working_directory = os.getcwd()
@@ -1079,29 +1205,304 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	subprocess.call("mkdir soh_input", shell=True)
 	subprocess.call("mkdir soh_output", shell=True)
 	
+	
+	def accurate_peak_centre_and_breadth(over_width, make_plots_accurate):
+		
+		print "Finding accurate centre and breadths for each peak..."
+		
+		acc_dir = "accurate_peak_lineouts"
+		
+		subprocess.call("rm -r " + acc_dir, shell = True)
+		subprocess.call("mkdir " + acc_dir, shell=True)
+		
+		print "accurate_peak_lineouts directory made"
+		
+		for i in range(len(pos_est)):
+		
+			lineout_direction = ["kx", "ky", "kz"]
+			del_k = [del_kx, del_ky, del_kz]
+
+			peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+			
+			print peak_dir
+			
+
+			subprocess.call("mkdir " + current_working_directory + "/" + peak_dir, shell=True)
+			subprocess.call("mv " + current_working_directory + "/" + peak_dir + "/ " + current_working_directory + "/" + acc_dir + "/", shell = True)	
+
+		
+			for j in range(len(lineout_direction)):
+		
+
+				width = del_k[j] * (1.0 + over_width)
+				print "width = " + str(width)
+				
+				k_start = pos_est[i][j] - width
+				k_end = pos_est[i][j] + width			
+			
+				print "\nPeak " + peak_dir
+				print "k_start = " + str(k_start)
+				print "k_end = " + str(k_end)
+				
+			
+
+
+		
+				filenum = lineout_direction[j]
+		
+				soh_input = current_working_directory + "/" + acc_dir + "/" + peak_dir + "/in_" + filenum + ".soh" 	
+		
+			
+				if j == 0 :
+	
+					f = open(str(soh_input), "w")
+
+					f.write("VERBOSE\t\t\t0\n\n"
+					"FILE_TYPE\t\tlammps-multi\n"
+					"DATA_FILE\t\t" + source_location + "\n"
+					"APPEND_FILE_NAME\t\t" + filenum + "\n\n"
+					"PLOT_OUTPUT\t\tpdf\n\n"
+					"COORDS_SCALED\n"
+					"SET_MASS\t\t" + str(mass) + "\n\n"
+					"SET_A_CELL\t\t" + str(a_lattice) + "\n\n"
+					"CALC_1D_FT\n\n"
+					"SET_K_START\t\t\t" + str(k_start) + " " + str(pos_est[i][1]) + " " + str(pos_est[i][2]) + "\n"
+					"SET_K_STOP\t\t\t" + str(k_end) + " " + str(pos_est[i][1]) + " " + str(pos_est[i][2]) + "\n"
+					"SET_NK\t\t\t" + str(k_steps_accurate) + "\n")
+
+					f.close()
+	
+	
+				if j == 1 :
+	
+					f = open(str(soh_input), "w")
+
+					f.write("VERBOSE\t\t\t0\n\n"
+					"FILE_TYPE\t\tlammps-multi\n"
+					"DATA_FILE\t\t" + source_location + "\n"
+					"APPEND_FILE_NAME\t\t" + filenum + "\n\n"
+					"PLOT_OUTPUT\t\tpdf\n\n"
+					"COORDS_SCALED\n"
+					"SET_MASS\t\t" + str(mass) + "\n\n"
+					"SET_A_CELL\t\t" + str(a_lattice) + "\n\n"
+					"CALC_1D_FT\n\n"
+					"SET_K_START\t\t\t" + str(pos_est[i][0]) + " " + str(k_start) + " " + str(pos_est[i][2]) + "\n"
+					"SET_K_STOP\t\t\t" + str(pos_est[i][0]) + " " + str(k_end) + " " + str(pos_est[i][2]) + "\n"
+					"SET_NK\t\t\t" + str(k_steps_accurate) + "\n")
+
+					f.close()
+
+
+				if j == 2 :
+	
+					f = open(str(soh_input), "w")
+
+					f.write("VERBOSE\t\t\t0\n\n"
+					"FILE_TYPE\t\tlammps-multi\n"
+					"DATA_FILE\t\t" + source_location + "\n"
+					"APPEND_FILE_NAME\t\t" + filenum + "\n\n"
+					"PLOT_OUTPUT\t\tpdf\n\n"
+					"COORDS_SCALED\n"
+					"SET_MASS\t\t" + str(mass) + "\n\n"
+					"SET_A_CELL\t\t" + str(a_lattice) + "\n\n"
+					"CALC_1D_FT\n\n"
+					"SET_K_START\t\t\t" + str(pos_est[i][0]) + " " + str(pos_est[i][1]) + " " + str(k_start) + "\n"
+					"SET_K_STOP\t\t\t" + str(pos_est[i][0]) + " " + str(pos_est[i][1]) + " " + str(k_end) + "\n"
+					"SET_NK\t\t\t" + str(k_steps_accurate) + "\n")
+
+					f.close()
+
+	
+	
+				if run_soh == True:
+					subprocess.call('cd soh_input ; mpiexec -np 24 sonOfHoward ' + soh_input, shell=True)	
+	
+			
+				soh_output = str(source) + "." + str(timestep) + "." + str(filenum) + ".ft"
+			
+				subprocess.call("mv " + soh_output + " " + current_working_directory + "/" + acc_dir + "/" + peak_dir + "/", shell=True)
+	
+
+		if make_plots_accurate == True:
+		
+			lineout_direction = ["kx", "ky", "kz"]
+			
+			for i in range(len(pos_est)):
+		
+
+				peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])	
+				
+				
+				for j in range(len(lineout_direction)):		
+				
+					soh_output = str(source) + "." + str(timestep) + "." + str(lineout_direction[j]) + ".ft"
+					
+					plot_datafile = current_working_directory + "/" + acc_dir + "/" + peak_dir + "/" + soh_output
+					plot_name = lineout_direction[j] + ".png"
+					gnuplot_input = "in_gnuplot_" + lineout_direction[j]
+		
+					g = open(gnuplot_input, "w")
+					g.write(
+					"set terminal png size 1600,1200 enhanced font 'Helvetica,20'"
+					"\nset output '" + str(plot_name)  + "'"
+					"\nplot '" + plot_datafile + "' using " + str(j+1) + ":6")
+					g.close()
+					
+					print "Plotted " + peak_dir + " along " + str(lineout_direction[j]) 
+					
+					subprocess.call("gnuplot " + str(gnuplot_input), shell=True)
+					
+					subprocess.call("mv " + gnuplot_input + " " + current_working_directory + "/" + acc_dir + "/" + peak_dir + "/", shell=True)
+					
+					subprocess.call("mv " + plot_name + " " + current_working_directory + "/" + acc_dir + "/" + peak_dir + "/", shell=True)
+					
+	
+		accurate_pos_est = [0] * len(pos_est)
+		accurate_breadths = [0] * len(pos_est)
+	
+		for i in range(len(pos_est)):
+		
+			accurate_pos_est[i] = [0] * 3
+			accurate_breadths[i] = [0] * 3
+			
+			
+		print "\nFinding accurate peak centres and breadths for:"		
+		
+		for i in range(len(pos_est)):
+		
+			peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+			
+			lineout_direction = ["kx", "ky", "kz"]
+	
+
+			for j in range(len(lineout_direction)):
+			
+				print "\n" + str(peak_dir) + " along " + lineout_direction[j]
+			
+				datafile = current_working_directory + "/" + acc_dir + "/" + peak_dir + "/" + str(source) + "." + str(timestep) + "." + str(lineout_direction[j]) + ".ft"
+		
+				
+		
+				k_temp, intensity_temp = numpy.loadtxt(datafile, skiprows=1, usecols=(j,5), unpack=True)
+		
+				accurate_pos_est[i][j] = max(k_temp)
+				
+				ind = numpy.argmax(intensity_temp)
+				accurate_pos_est[i][j] = k_temp[ind]
+
+
+				#print accurate_pos_est
+				#print initial_hkl_pos_est
+
+
+
+				
+				
+				for k in range(len(k_temp)):
+					
+					intensity_diff_left = intensity_temp[ind - k] - intensity_temp[ind - k - 1]
+					#print intensity_diff_left
+
+
+					if ind - k - 1 < 0:
+						
+						print "Lower bound for peak " + peak_dir + " could not be found."
+						exit() 
+
+
+
+					if intensity_diff_left <= 0.0:
+					
+						k_acc_start = k_temp[ind - k]
+						print "\nIntensity diff left for " + peak_dir + " " + lineout_direction[j] + " = " + str(intensity_diff_left)
+						print k_temp
+						print intensity_temp
+						break
+						
+					else:
+						
+						continue
+						
+					
+					
+				for k in range(len(k_temp)):
+				
+					if k + 1 + ind >= len(k_temp):
+						
+						print "Upper bound for peak " + peak_dir + " could not be found."
+						exit() 
+					
+					intensity_diff_right = intensity_temp[ind + k] - intensity_temp[ind + k + 1]
+					#print intensity_diff_right
+					
+					if intensity_diff_right <= 0.0:
+					
+						k_acc_end = k_temp[ind + k]
+						print "Intensity diff right for " + peak_dir + " = " + str(intensity_diff_right)
+						print k_temp
+						print intensity_temp
+						break
+						
+					else:
+						
+						continue
+					
+					
+				accurate_breadths[i][j] = [k_acc_start, k_acc_end]
+				
+				print accurate_breadths[i][j]
+				
+		
+		return accurate_pos_est, accurate_breadths;
+				
+					
+
+	accurate_pos_est, accurate_breadths = accurate_peak_centre_and_breadth(0.5, True)
+	
+	print "\nCreated accurate estimates of peak centres and breadths.\n"
+	
+	print accurate_pos_est
+	print accurate_breadths
+	
 
 
 	for i in range(len(pos_est)):
 
+
+		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
 
 
 		t_start_peak = time.time()
 
 
 
-
-		kx_start = pos_est[i][0] - (del_kx * compression_factor[0])
-		kx_end = pos_est[i][0] + (del_kx * compression_factor[0])
+		kx_start = accurate_breadths[i][0][0]
+		kx_end = accurate_breadths[i][0][1]
 		
-		ky_start = pos_est[i][1] - (del_ky * compression_factor[1])
-		ky_end = pos_est[i][1] + (del_ky * compression_factor[1])
+		ky_start = accurate_breadths[i][1][0]
+		ky_end = accurate_breadths[i][1][1]
 		
-		kz_start = pos_est[i][2] - (del_kz * compression_factor[2])
-		kz_end = pos_est[i][2] + (del_kz * compression_factor[2])
+		kz_start = accurate_breadths[i][2][0]
+		kz_end = accurate_breadths[i][2][1]
+
+
+		print "\nPeak " + peak_dir + ":"
+		print "\nCentre:"
+		print "Old = " + str(pos_est[i])
+		print "New = " + str(accurate_pos_est[i])
+		print "\nBreadth:"
+		print "Old = " + str(accurate_breadths[i])
+		print kx_start
+		print kx_end
+		print ky_start
+		print ky_end
+		print kz_start
+		print kz_end
 
 
 
-		filenum = str( round(pos_est[i][0], 2) ) + "#" + str( round(pos_est[i][1], 2) ) + "#" + str( round(pos_est[i][2]) )			
+		filenum = peak_dir
+		
 		soh_input = "in_" + filenum + ".soh" 
 
 
@@ -1170,7 +1571,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 		f.write(str(initial_hkl_pos_est[i]) + " sought at " + str(pos_est[i]) + "\n")
 	
 	f.write("a_lattice = " + str(a_lattice) + "\n"
-	"del_kx, del_ky, del_kz = " + str(del_kx) + ", " + str(del_ky) + " ," + str(del_kz) + "\n"
+#	"del_kx, del_ky, del_kz = " + str(del_kx) + ", " + str(del_ky) + " ," + str(del_kz) + "\n"
 	"k_steps = " + str(k_steps) + "\n"
 	"run_soh = " + str(run_soh) + "\n"
 	"\nFunction get_peak_intensities returned:\n"
@@ -1191,7 +1592,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 # This function
 
 
-def get_ln_intensity(pos_est, miller_pos_est, source, show_plot, timestep, a_lattice, del_kx, del_ky, del_kz, k_steps, compression_factor, make_plots):
+def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_plot, timestep, a_lattice, del_kx, del_ky, del_kz, k_steps, compression_factor, make_plots):
 
 	
 	
@@ -1247,8 +1648,11 @@ def get_ln_intensity(pos_est, miller_pos_est, source, show_plot, timestep, a_lat
 
 	for i in range(len(pos_est)):
 
-
-		soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + str( round(pos_est[i][0], 2) ) + "#" + str( round(pos_est[i][1], 2) ) + "#" + str( round(pos_est[i][2]) )	+ ".ft" # Stores the name of the soh output file.
+		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+		
+		print peak_dir
+		
+		soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + peak_dir+ ".ft" # Stores the name of the soh output file.
 
 		print soh_out
 	
@@ -1369,7 +1773,7 @@ def get_ln_intensity(pos_est, miller_pos_est, source, show_plot, timestep, a_lat
 
 
 
-			print kx_lineout_for_plot
+			print kx_for_lineout_plot
 
 
 
