@@ -103,7 +103,7 @@ def make_bcc(range_num, negative_k, remove_000):
 #This function creates bcc positions. It takes as input range_num (int), negative_k (bool), and remove_000 (bool). As output it creates gsqr_est (list) and pos_est (list).
 
 
-def make_fcc(range_num, negative_k, remove_000):
+def make_fcc(gsqr_max, negative_k, remove_000):
 
 	
 	# Variables in this function:
@@ -119,6 +119,14 @@ def make_fcc(range_num, negative_k, remove_000):
 
 
 
+	import numpy as np
+
+	
+	
+	range_num = int(np.sqrt(gsqr_max) + 1.0)
+
+	
+	
 	if negative_k == True:
 	
 		x_est = range(-range_num+1, range_num)
@@ -134,15 +142,15 @@ def make_fcc(range_num, negative_k, remove_000):
 
 
 
+
 	pos_est = [] # This list will have our k coordinates for each peak.
 	gsqr_est = [] # This list will have the G^2 values for each peak.
 	
 
-
 	for i in x_est:
-	
+
 		for j in y_est:
-		
+
 			for k in z_est:
 			
 				#The values for i j k are only selected if they are all even or all odd. If remove_000 is true there is an extra condition that makes sure 000 is not included.
@@ -180,8 +188,42 @@ def make_fcc(range_num, negative_k, remove_000):
 
 					else:
 					
-						pass     	
+						pass 
+						
+	print pos_est
+	print gsqr_est  
+	print "start of while"	
+	
+	i = 0
+	
+	while i + 1 <= len(pos_est):
+	
+		print i
+		
+		
+		print pos_est[i]
+		print gsqr_est[i]
+			
+		if gsqr_est[i] <= gsqr_max:
+		
+			i += 1
+			continue
+		
+			
+		else:
+		
+			del gsqr_est[i]
+			del pos_est[i]
+			continue
+		
+		
+		
+	print pos_est
+	print gsqr_est
 
+			
+	
+		  	
 
 	
 	# This section prints to the console.

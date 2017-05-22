@@ -6,29 +6,29 @@ import module as mod
 
 run_soh = True
 make_plots = True
-source = "shock_9000.atom"
+source = "shock_12000.atom"
 a_lattice = 3.615	# In Angstroms.
 mass = 63.55 	# In g/mol.
-timestep = 9000 # Only used for file locations. 
+timestep = 12000 # Only used for file locations. 
 
-del_kx = 1/15.0
-del_ky = 1/12.0
-del_kz = 1/20.0
+del_kx = 1/10.0
+del_ky = 1/10.0
+del_kz = 1/10.0
 k_steps = 21
 k_steps_accurate = 1e3 + 1
 
 
 
-gsqr_est, pos_est = mod.make_fcc(range_num = 3, negative_k = True, remove_000 = True)
+gsqr_est, pos_est = mod.make_fcc(gsqr_max = 30, negative_k = True, remove_000 = True)
 
 
 rot_pos_est = mod.enforce_rotation_111(pos_est = pos_est)
 
 
-source_cut, atom_count = mod.cut_atoms(source = source, xlo = 0.0, xhi = 1.0, ylo = 0.0, yhi = 1.0, zlo = 0.3, zhi = 0.44)
+source_cut, atom_count = mod.cut_atoms(source = source, xlo = 0.3, xhi = 0.6, ylo = 0.3, yhi = 0.6, zlo = 0.15, zhi = 0.24)
 
 
-md_temperature_2d, md_temperature_3d = mod.get_md_temperature(source = source_cut, mass = mass, piston_velocity = 5.01)
+md_temperature_2d, md_temperature_3d = mod.get_md_temperature(source = source_cut, mass = mass, piston_velocity = 9.4)
 
 
 pos_est_compressed, gsqr_est_compressed, compression_factor = mod.compensate_for_compression(source = source_cut, rotated_to_111 = True, initial_hkl_pos_est = pos_est, run_soh = run_soh, k_steps = 10001, pos_est = rot_pos_est, a_lattice = a_lattice, mass = mass, show_plot = False, timestep = timestep)
