@@ -1636,42 +1636,34 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 
 def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_plot, timestep, a_lattice, del_kx, del_ky, del_kz, k_steps, compression_factor, make_plots):
 
-	
-	
-	# Variables:
-	
-	
 	import numpy as np
 	import os
 	import subprocess
 	import matplotlib.pyplot as plt
 	
+	cwd = os.getcwd()
 	
+	if make_plots == True:
+			
+		subprocess.call("mkdir " + str(cwd) + "/plots_of_data/", shell = True)
 
 	intensity_integrated = [0] * len(pos_est) # Stores the intensity of each peak to be plotted.
 	
-	
 	gsqr_integrated = [0] * len(pos_est)
 	
-	
 	pos_integrated = [[0, 0, 0]] * len(pos_est)
-
 
 	kx = [0] * len(pos_est)
 	ky = [0] * len(pos_est)
 	kz = [0] * len(pos_est)
-
-	k_vol = ((del_kx * compression_factor[0])/k_steps) * ((del_ky * compression_factor[1])/k_steps) * ((del_kz * compression_factor[2])/k_steps)
-	
 	
 	print "Values:"
 	print compression_factor
 	print str(del_kx) + "->" + str(del_kx * compression_factor[0])
 	print str(del_ky) + "->" + str(del_ky * compression_factor[1])
 	print str(del_kz) + "->" + str(del_kz * compression_factor[2])
-	print k_vol
 
-	
+
 	f = open("log.pkfd", "a")
 	
 	f.write("\n\nFunction get_ln_intensity called with input:\n"
@@ -1680,14 +1672,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	"timestep = " + str(timestep) + "\n"
 	"a_lattice = " + str(a_lattice) + "\n")
 	
-	
-
-	cwd = os.getcwd()
-
-	
-	subprocess.call("mkdir " + str(cwd) + "/plots_of_peaks", shell = True)	
-	
-
 	for i in range(len(pos_est)):
 
 		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
@@ -1701,11 +1685,24 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 
 		kx_coord, ky_coord, kz_coord, tmp_intensity = np.loadtxt(soh_out, skiprows = 1, usecols = (0,1,2,5), unpack=True)   
 
+		dk_vol = ( (max(kx_coord) - min(kx_coord))/(k_steps - 1) ) * ( (max(ky_coord) - min(ky_coord))/(k_steps - 1) ) * ( (max(kz_coord) - min(kz_coord))/(k_steps - 1) )
 
 		print kx_coord
+		print min(kx_coord)
+		print max(kx_coord)
+		print (max(kx_coord) - min(kx_coord))/(k_steps - 1)
 		print ky_coord
+		print min(ky_coord)
+		print max(ky_coord)
+		print (max(ky_coord) - min(ky_coord))/(k_steps - 1)
 		print kz_coord	
+		print min(kz_coord)
+		print max(kz_coord)
+		print (max(kz_coord) - min(kz_coord))/(k_steps - 1)
 		
+		print "\nk-space volume element = " + str(dk_vol) + "\n"
+		
+
 
 
 		# Converts np.arrays into lists, which I find easier to manipulate.
@@ -1730,9 +1727,77 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		pos_integrated[i] = [ kx_coord[peak_position_ind], ky_coord[peak_position_ind],  kz_coord[peak_position_ind] ]
 
 		
+		intensity_volume = list(tmp_intensity)
+		
+		points_in_bulk = 0
+		points_in_surface = 0 
+		points_in_edge = 0
+		points_in_corner = 0
+		
+		classification = ["bulk", "surface", "edge", "corner"]
+		classification_ind = 0
 
-		intensity_integrated[i] = sum(tmp_intensity)
+		subprocess.call("mkdir " + str(cwd) + "/plots_of_data/" + peak_dir, shell=True)
+		
+		intensity_datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"	
+			
+		h = open(intensity_datafile, 'w')
+		h.write('#kx ky kz intensity_volume intensity classification')
+		
+		for j in range(len(intensity_volume)):
+			
+			# This finds all of the corner, edge, and surface intensity points.
+			if kx_coord[j] == min(kx_coord) or kx_coord[j] == max(kx_coord) or ky_coord[j] == min(ky_coord) or ky_coord[j] == max(ky_coord) or kz_coord[j] == min(kz_coord) or kz_coord[j] == max(kz_coord):
+				# This finds all corner and edge intensity points.
+				if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == max(ky_coord) and kx_coord[j] == max(kx_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord):
+							
+					# This finds all the corner intensity points.
+					if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord):
+					
+						intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/8.0)				
+						print "Corner at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+						points_in_corner += 1
+						classification_ind = 3
 
+					
+					# All the edge points must go here.
+					else:
+
+						intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/4.0)									
+						print "Edge at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+						points_in_edge += 1
+						classification_ind = 2
+						
+				# All the surface points must go here.	
+				else:
+
+					intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/2.0)								
+					print "Surface at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"	
+					points_in_surface += 1
+					classification_ind = 1
+					
+			# All the bulk points must go here.
+			else:
+				
+				intensity_volume[j] = tmp_intensity[j] * dk_vol			
+				print "Bulk at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+				points_in_bulk += 1
+				classification_ind = 0
+	
+	
+			h.write('\n' + str(kx_coord[j]) + ' ' + str(ky_coord[j]) + ' ' + str(kz_coord[j]) + ' ' + str(intensity_volume[j]) + ' ' + str(tmp_intensity[j]) + ' ' + classification[classification_ind])
+
+		h.close()	
+	
+		total_points = points_in_bulk + points_in_surface + points_in_edge + points_in_corner
+	
+		print "\nPoints in bulk = " + str(points_in_bulk)
+		print "Points on a surface = " + str(points_in_surface)
+		print "Points on an edge = " + str(points_in_edge)
+		print "Point on a corner = " + str(points_in_corner)
+		print "\nTotal points = "  + str(total_points) + "\n"
+
+		intensity_integrated[i] = sum(intensity_volume)
 	
 		print "\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(intensity_integrated[i])
 		print "Peak maximum at " + str(pos_integrated[i]) + " with intensity = " + str(tmp_intensity[peak_position_ind])
@@ -1740,7 +1805,47 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		"Peak maximum at " + str(pos_integrated[i]) + " with intensity = " + str(tmp_intensity[peak_position_ind]) + "\n"
 		)
 		
+
 		
+
+		"""	
+		if make_plots == True:
+	
+			lineout_direction = ["kx", "ky", "kz"]	
+	
+			for i in range(len(pos_est)):	
+			
+				
+				peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+
+					
+				for j in range(len(lineout_direction)):		
+								
+					datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"	
+			
+					np.loadtxt(datafile, ,usecols=(j,4))
+
+					plot_name = lineout_direction[j] + ".png"
+					gnuplot_input = cwd + "/plots_of_data/" + peak_dir + "/in_gnuplot_" + lineout_direction[j]
+
+					g = open(gnuplot_input, "w")
+					g.write(
+					"set terminal png size 1600,1200 enhanced font 'Helvetica,20'"
+					"\nset output '" + str(plot_name)  + "'"
+					"\nplot '" + datafile + "' using " + str(j+1) + ":4")
+					g.close()
+		
+					subprocess.call("gnuplot " + str(gnuplot_input), shell=True)
+			
+					#subprocess.call("mv " + gnuplot_input + " " + cwd + "/" + acc_dir + "/" + peak_dir + "/", shell=True)
+			
+					subprocess.call("mv " + plot_name + " " + cwd + "/plots_of_data/" + peak_dir + "/", shell=True)
+				
+					print "Plotted " + peak_dir + " along " + str(lineout_direction[j]) 
+			
+			
+					
+		"""# This section plots the peaks using matplotlib. 
 		
 		if make_plots == True:
 		
@@ -1883,9 +1988,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 
 
 			subprocess.call("mv " + str(kz_lineout_plot_name) + " " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name) ,shell = True)
-
 	
-
 
 
 	intensity_integrated_max_ind = np.argmax(intensity_integrated)
@@ -2384,11 +2487,3 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 	
 	
 ###########################################################################
-
-	
-
-######################################################################
-
-
-
-
