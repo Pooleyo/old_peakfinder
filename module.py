@@ -3,6 +3,51 @@
 
 
 ########################################################################
+# Opens a time log of the run.
+
+def startwatch():
+
+	import time
+
+	start_time = time.localtime()
+	t0 = time.clock()
+
+	t = open('time.pkfd', 'w')
+	t.write("Peakfinder started at " + str(start_time[3]) + ":" + str(start_time[4]) + ":" + str(start_time[5]) + " " + str(start_time[2]) + "/" + str(start_time[1]) + "/" + str(start_time[0]) + "\n")
+	t.close()
+	
+	return t0
+	
+	
+########################################################################
+# Closes the time log of the run.
+
+def stopwatch(t0):
+
+	import time
+
+	stop_time = time.localtime()
+	tf = time.clock()
+	tt = tf - t0
+
+	
+	hours = int(tt/3600)
+	minutes = int((tt - (hours * 3600))/60)
+	seconds = int(tt - (hours * 3600) - (minutes * 60))
+	
+	time_elapsed = [hours, minutes, seconds]	
+
+	t = open('time.pkfd', 'a')
+	t.write("\nPeakfinder finished at " + str(stop_time[3]) + ":" + str(stop_time[4]) + ":" + str(stop_time[5]) + " " + str(stop_time[2]) + "/" + str(stop_time[1]) + "/" + str(stop_time[0]) + "\n")
+	t.write("\n\nPeakfinder took " + str(tt) + " s (or " + str(time_elapsed[0]) + ":" + str(time_elapsed[1]) + ":" + str(time_elapsed[2]) + ") to complete.")
+	t.close()
+
+	
+	return
+	
+	
+
+########################################################################
 #This function creates bcc positions. It takes as input range_num (int), negative_k (bool), and remove_000 (bool). As output it creates gsqr_est (list) and pos_est (list).
 
 def make_bcc(range_num, negative_k, remove_000): 
@@ -120,7 +165,9 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 
 
 	import numpy as np
-
+	import time
+	
+	t0 = time.clock()
 	
 	
 	range_num = int(np.sqrt(gsqr_max) + 1.0)
@@ -247,6 +294,11 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 	
 	f.close()
 	
+	t1 = time.clock()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.make_fcc took " + str(tt) + " s (or " + str(time_elapsed[3]) + ":" + str(time_elapsed[4]) + ":" + str(time_elapsed[5]) + ") to complete.")	
 	
 	return gsqr_est, pos_est
 	
@@ -1647,7 +1699,11 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			
 		subprocess.call("mkdir " + str(cwd) + "/plots_of_data/", shell = True)
 
-	intensity_integrated = [0] * len(pos_est) # Stores the intensity of each peak to be plotted.
+
+	simple_intensity_integrated = [0] * len(pos_est) # Stores a simple sum of intensities of each peak.
+	complex_intensity_integrated = [0] * len(pos_est) # Stores the sum of intensity*volumes for each peak.
+	intensity_integrated = complex_intensity_integrated
+
 	
 	gsqr_integrated = [0] * len(pos_est)
 	
@@ -1671,7 +1727,99 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	"source = " + str(source) + "\n"
 	"timestep = " + str(timestep) + "\n"
 	"a_lattice = " + str(a_lattice) + "\n")
+
+
+	print "test code start"
+	first_peak_dir = str(initial_hkl_pos_est[0][0]) + str(initial_hkl_pos_est[0][1]) + str(initial_hkl_pos_est[0][2])
+		
+	print first_peak_dir
+		
+	first_soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + first_peak_dir+ ".ft" # Stores the name of the soh output file.
+
+	kx_coord, ky_coord, kz_coord, first_intensity = np.loadtxt(first_soh_out, skiprows=1, usecols=(0, 1, 2, 5), unpack=True)
+	#
 	
+	points_in_bulk = 0
+	points_in_surface = 0 
+	points_in_edge = 0
+	points_in_corner = 0
+	
+	classification = ["bulk", "surface", "edge", "corner"]
+	classification_ind = 0
+	volume_fraction = list(first_intensity)
+
+	#h = open(intensity_datafile, 'w')
+	#h.write('#kx ky kz intensity_volume intensity classification')
+	
+	print "Sorting k-space points into corners, edges, surfaces, and bulk..."
+	
+	for j in range(len(first_intensity)):
+		
+		# This finds all of the corner, edge, and surface intensity points.
+		if kx_coord[j] == min(kx_coord) or kx_coord[j] == max(kx_coord) or ky_coord[j] == min(ky_coord) or ky_coord[j] == max(ky_coord) or kz_coord[j] == min(kz_coord) or kz_coord[j] == max(kz_coord):
+			# This finds all corner and edge intensity points.
+			if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == max(ky_coord) and kx_coord[j] == max(kx_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord):
+						
+				# This finds all the corner intensity points.
+				if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord):
+				
+					
+					#intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/8.0)				
+					#print "Corner at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+					points_in_corner += 1
+					classification_ind = 3
+					volume_fraction[j] = 0.125
+
+				
+				# All the edge points must go here.
+				else:
+
+					#intensity_volume[j] = tmp_intensity[j] * dk_vol * 0.25									
+					#print "Edge at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+					points_in_edge += 1
+					classification_ind = 2
+					volume_fraction[j] = 0.25
+
+			# All the surface points must go here.	
+			else:
+
+				#intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/2.0)								
+				#print "Surface at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"	
+				points_in_surface += 1
+				classification_ind = 1
+				volume_fraction[j] = 0.5
+				
+		# All the bulk points must go here.
+		else:
+			
+			#intensity_volume[j] = tmp_intensity[j] * dk_vol			
+			#print "Bulk at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+			points_in_bulk += 1
+			classification_ind = 0
+			volume_fraction[j] = 1.0
+
+		#h.write('\n' + str(kx_coord[j]) + ' ' + str(ky_coord[j]) + ' ' + str(kz_coord[j]) + ' ' + str(intensity_volume[j]) + ' ' + str(tmp_intensity[j]) + ' ' + classification[classification_ind])
+
+	#h.close()	
+
+	print "Finished sorting k-space points."
+
+	total_points = points_in_bulk + points_in_surface + points_in_edge + points_in_corner
+	
+	expected_bulk = (k_steps - 2) ** 3
+	expected_surface = 6 * ((k_steps - 2) ** 2)
+	expected_edge = 12 * (k_steps - 2)
+	expected_corner = 8
+	expected_total = expected_corner + expected_edge + expected_surface + expected_bulk
+
+	print "\nPoints in bulk = " + str(points_in_bulk) + "			Expected " + str(expected_bulk)
+	print "Points on a surface = " + str(points_in_surface) + "		Expected " + str(expected_surface)
+	print "Points on an edge = " + str(points_in_edge) + "			Expected " + str(expected_edge)
+	print "Point on a corner = " + str(points_in_corner) + "			Expected " + str(expected_corner)
+	print "\nTotal points = "  + str(total_points) + "			Expected " + str(expected_total) + "\n"
+	
+	dk_vol_var = 1.0/(k_steps - 1.0) # Division is computationally expensive so best to do this outside the loop, then multiply it in.
+
 	for i in range(len(pos_est)):
 
 		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
@@ -1680,132 +1828,41 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 		soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + peak_dir+ ".ft" # Stores the name of the soh output file.
 
-		print soh_out
-	
-
 		kx_coord, ky_coord, kz_coord, tmp_intensity = np.loadtxt(soh_out, skiprows = 1, usecols = (0,1,2,5), unpack=True)   
 
-		dk_vol = ( (max(kx_coord) - min(kx_coord))/(k_steps - 1) ) * ( (max(ky_coord) - min(ky_coord))/(k_steps - 1) ) * ( (max(kz_coord) - min(kz_coord))/(k_steps - 1) )
+		dk_vol = ( (max(kx_coord) - min(kx_coord)) * dk_vol_var) * ( (max(ky_coord) - min(ky_coord)) * dk_vol_var ) * ( (max(kz_coord) - min(kz_coord)) * dk_vol_var )
 
-		print kx_coord
-		print min(kx_coord)
-		print max(kx_coord)
-		print (max(kx_coord) - min(kx_coord))/(k_steps - 1)
-		print ky_coord
-		print min(ky_coord)
-		print max(ky_coord)
-		print (max(ky_coord) - min(ky_coord))/(k_steps - 1)
-		print kz_coord	
-		print min(kz_coord)
-		print max(kz_coord)
-		print (max(kz_coord) - min(kz_coord))/(k_steps - 1)
-		
 		print "\nk-space volume element = " + str(dk_vol) + "\n"
-		
 
-
-
-		# Converts np.arrays into lists, which I find easier to manipulate.
-
-		
 		peak_position_ind = np.argmax(tmp_intensity)
 
-
-
-
-		
 		tmp_gsqr_integrated = (kx_coord[peak_position_ind] * kx_coord[peak_position_ind]) + (ky_coord[peak_position_ind] * ky_coord[peak_position_ind]) + (kz_coord[peak_position_ind] * kz_coord[peak_position_ind])
-		# Checked with Google calculator.
 
-
-		
 		gsqr_integrated[i] = tmp_gsqr_integrated * (2 * np.pi / a_lattice ) * (2 * np.pi / a_lattice) # This is because of how soh handles the data. It is also the reason I was initially getting more peaks than Will.
-		# Checked with Google calculator.
-		
-		
-		
-		pos_integrated[i] = [ kx_coord[peak_position_ind], ky_coord[peak_position_ind],  kz_coord[peak_position_ind] ]
 
-		
-		intensity_volume = list(tmp_intensity)
-		
-		points_in_bulk = 0
-		points_in_surface = 0 
-		points_in_edge = 0
-		points_in_corner = 0
-		
-		classification = ["bulk", "surface", "edge", "corner"]
-		classification_ind = 0
+		pos_integrated[i] = [ kx_coord[peak_position_ind], ky_coord[peak_position_ind],  kz_coord[peak_position_ind] ]
 
 		subprocess.call("mkdir " + str(cwd) + "/plots_of_data/" + peak_dir, shell=True)
 		
-		intensity_datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"	
-			
-		h = open(intensity_datafile, 'w')
-		h.write('#kx ky kz intensity_volume intensity classification')
+		intensity_datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"		
+
+		simple_intensity_integrated[i] = sum(tmp_intensity)
 		
-		for j in range(len(intensity_volume)):
-			
-			# This finds all of the corner, edge, and surface intensity points.
-			if kx_coord[j] == min(kx_coord) or kx_coord[j] == max(kx_coord) or ky_coord[j] == min(ky_coord) or ky_coord[j] == max(ky_coord) or kz_coord[j] == min(kz_coord) or kz_coord[j] == max(kz_coord):
-				# This finds all corner and edge intensity points.
-				if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or ky_coord[j] == max(ky_coord) and kx_coord[j] == max(kx_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) or ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord):
-							
-					# This finds all the corner intensity points.
-					if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord):
-					
-						intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/8.0)				
-						print "Corner at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
-						points_in_corner += 1
-						classification_ind = 3
-
-					
-					# All the edge points must go here.
-					else:
-
-						intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/4.0)									
-						print "Edge at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
-						points_in_edge += 1
-						classification_ind = 2
-						
-				# All the surface points must go here.	
-				else:
-
-					intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/2.0)								
-					print "Surface at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"	
-					points_in_surface += 1
-					classification_ind = 1
-					
-			# All the bulk points must go here.
-			else:
-				
-				intensity_volume[j] = tmp_intensity[j] * dk_vol			
-				print "Bulk at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
-				points_in_bulk += 1
-				classification_ind = 0
-	
-	
-			h.write('\n' + str(kx_coord[j]) + ' ' + str(ky_coord[j]) + ' ' + str(kz_coord[j]) + ' ' + str(intensity_volume[j]) + ' ' + str(tmp_intensity[j]) + ' ' + classification[classification_ind])
-
-		h.close()	
-	
-		total_points = points_in_bulk + points_in_surface + points_in_edge + points_in_corner
-	
-		print "\nPoints in bulk = " + str(points_in_bulk)
-		print "Points on a surface = " + str(points_in_surface)
-		print "Points on an edge = " + str(points_in_edge)
-		print "Point on a corner = " + str(points_in_corner)
-		print "\nTotal points = "  + str(total_points) + "\n"
-
-		intensity_integrated[i] = sum(intensity_volume)
-	
-		print "\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(intensity_integrated[i])
-		print "Peak maximum at " + str(pos_integrated[i]) + " with intensity = " + str(tmp_intensity[peak_position_ind])
-		f.write("\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(intensity_integrated[i]) + "\n"
-		"Peak maximum at " + str(pos_integrated[i]) + " with intensity = " + str(tmp_intensity[peak_position_ind]) + "\n"
-		)
+		intensity_volume = list(tmp_intensity)
 		
+		print "This peak has " + str(len(tmp_intensity)) + " points. We expect there to be " + str(expected_total) + "."	
+	
+		for j in range(len(tmp_intensity)):
 
+			intensity_volume[j] = tmp_intensity[j] * dk_vol * volume_fraction[j]
+		
+		
+		complex_intensity_integrated[i] = sum(intensity_volume)
+	
+		print "\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i])
+		print "Simple sum of intensities = " + str(simple_intensity_integrated[i])
+		f.write("\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i]) + "\n"
+		"Simple sum of intensities = " + str(simple_intensity_integrated[i]) )
 		
 
 		"""	
