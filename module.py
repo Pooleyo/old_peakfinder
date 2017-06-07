@@ -1902,16 +1902,16 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			
 			
 					
-		"""# This section plots the peaks using matplotlib. 
+		"""
+		# This section plots the peaks using matplotlib.
 		
 		if make_plots == True:
-		
-		
+
 		
 			plot_directory_name = str(miller_pos_est[i][0]) + str(miller_pos_est[i][1]) + str(miller_pos_est[i][2])
 		
 				
-			subprocess.call("mkdir " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name), shell = True)
+			subprocess.call("mkdir " + str(cwd) + "/plots_of_data/" + str(plot_directory_name), shell = True)
 		
 		
 					
@@ -1998,7 +1998,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			plt.close()
 
 
-			subprocess.call("mv " + str(kx_lineout_plot_name) + " " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name) ,shell = True)
+			subprocess.call("mv " + str(kx_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
 		
 
 
@@ -2021,7 +2021,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			plt.close()
 
 
-			subprocess.call("mv " + str(ky_lineout_plot_name) + " " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name) ,shell = True)
+			subprocess.call("mv " + str(ky_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
 		
 		
 				
@@ -2044,8 +2044,8 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			plt.close()
 
 
-			subprocess.call("mv " + str(kz_lineout_plot_name) + " " + str(cwd) + "/plots_of_peaks/" + str(plot_directory_name) ,shell = True)
-	
+			subprocess.call("mv " + str(kz_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
+		
 
 
 	intensity_integrated_max_ind = np.argmax(intensity_integrated)
