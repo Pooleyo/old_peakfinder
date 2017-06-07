@@ -1864,46 +1864,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		f.write("\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i]) + "\n"
 		"Simple sum of intensities = " + str(simple_intensity_integrated[i]) )
 		
-
-		"""	
-		if make_plots == True:
-	
-			lineout_direction = ["kx", "ky", "kz"]	
-	
-			for i in range(len(pos_est)):	
-			
-				
-				peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
-
-					
-				for j in range(len(lineout_direction)):		
-								
-					datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"	
-			
-					np.loadtxt(datafile, ,usecols=(j,4))
-
-					plot_name = lineout_direction[j] + ".png"
-					gnuplot_input = cwd + "/plots_of_data/" + peak_dir + "/in_gnuplot_" + lineout_direction[j]
-
-					g = open(gnuplot_input, "w")
-					g.write(
-					"set terminal png size 1600,1200 enhanced font 'Helvetica,20'"
-					"\nset output '" + str(plot_name)  + "'"
-					"\nplot '" + datafile + "' using " + str(j+1) + ":4")
-					g.close()
-		
-					subprocess.call("gnuplot " + str(gnuplot_input), shell=True)
-			
-					#subprocess.call("mv " + gnuplot_input + " " + cwd + "/" + acc_dir + "/" + peak_dir + "/", shell=True)
-			
-					subprocess.call("mv " + plot_name + " " + cwd + "/plots_of_data/" + peak_dir + "/", shell=True)
-				
-					print "Plotted " + peak_dir + " along " + str(lineout_direction[j]) 
-			
-			
-					
-		"""
-		# This section plots the peaks using matplotlib.
 		
 		if make_plots == True:
 
@@ -1919,6 +1879,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				
 			intensity_for_kx_lineout_plot = []
 		
+			
 				
 		
 			for j in range(len(kx_coord)):
@@ -1931,7 +1892,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 				
 					intensity_for_kx_lineout_plot.append(tmp_intensity[j])
-
 
 
 
@@ -1977,76 +1937,70 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 
 
 
-			print kx_for_lineout_plot
-
-
-
-			kx_lineout_plot_name = "kx_lineout.png" 
-
-			plt.plot(kx_for_lineout_plot, intensity_for_kx_lineout_plot, 'ko')	
-
-			plt.xlabel('$k_x$ (normalised)')
-			plt.ylabel('Intensity (arb.)')
-			plt.title('$ln(I)$ vs. $k_x$')
-			plt.xticks()
-			plt.yticks()
-			plt.savefig(kx_lineout_plot_name, bbox_inches='tight')
-
-			if show_plot == True:
-				plt.show()
-
-			plt.close()
-
-
-			subprocess.call("mv " + str(kx_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
-		
-
-
-
-
-			ky_lineout_plot_name = "ky_lineout.png" 
-
-			plt.plot(ky_for_lineout_plot, intensity_for_ky_lineout_plot, 'ko')	
-
-			plt.xlabel('$k_y$ (normalised)')
-			plt.ylabel('Intensity (arb.)')
-			plt.title('$ln(I)$ vs. $k_y$')
-			plt.xticks()
-			plt.yticks()
-			plt.savefig(ky_lineout_plot_name, bbox_inches='tight')
-
-			if show_plot == True:
-				plt.show()
-
-			plt.close()
-
-
-			subprocess.call("mv " + str(ky_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
-		
-		
+			k_value = [kx_for_lineout_plot, ky_for_lineout_plot, kz_for_lineout_plot]
+			
+			intensity_value = [intensity_for_kx_lineout_plot, intensity_for_ky_lineout_plot, intensity_for_kz_lineout_plot]
+			
+			lineout_direction = ["kx", "ky", "kz"]
+			
+			for j in range(len(lineout_direction)):
+			
+				d = open(str(cwd) + "/plots_of_data/" + str(plot_directory_name) + "/I_vs_" + lineout_direction[j] + ".dat", "w")
+				d.write("#" + lineout_direction[j] + "    intensity\n")
 				
+				for k in range(len(k_value[j])):
+				
+					d.write(str(k_value[j][k]) + " " + str(intensity_value[j][k]) + "\n")
+					
+				d.close()
+				
+				print "data written"
+	
+	
+	
+	
+	if make_plots == True:
+	
+		lineout_direction = ["kx", "ky", "kz"]
+	
+		for i in range(len(pos_est)):
 		
-
-			kz_lineout_plot_name = "kz_lineout.png" 
-
-			plt.plot(kz_for_lineout_plot, intensity_for_kz_lineout_plot, 'ko')	
-
-			plt.xlabel('$k_z$')
-			plt.ylabel('Intensity')
-			plt.title('$ln(I)$ vs. $k_z$')
-			plt.xticks()
-			plt.yticks()
-			plt.savefig(kz_lineout_plot_name, bbox_inches='tight')
-
-			if show_plot == True:
-				plt.show()
-
-			plt.close()
-
-
-			subprocess.call("mv " + str(kz_lineout_plot_name) + " " + str(cwd) + "/plots_of_data/" + str(plot_directory_name) ,shell = True)
+			plot_directory_name = str(miller_pos_est[i][0]) + str(miller_pos_est[i][1]) + str(miller_pos_est[i][2])
+			
+			for j in range(len(lineout_direction)):
+			
+				datafile = cwd + "/plots_of_data/" + plot_directory_name + "/I_vs_" + lineout_direction[j] + ".dat"
+			
+				plot_name = cwd + "/plots_of_data/" + plot_directory_name + "/" + lineout_direction[j] + "_lineout.png"
+			
+				g = open(cwd + "/plots_of_data/" + plot_directory_name + "/" + lineout_direction[j] + "_gnuplot.in", "w")
+				g.write(
+				"set terminal png size 1600,1200 enhanced font 'Helvetica,20'"
+				"\nset output '" + str(plot_name)  + "'"
+				"\nplot '" + datafile + "' using 1:2"
+				)
+				g.close()
+				
+				print "gnuplot input written"
+				
+				
+	if make_plots == True:
+	
+		lineout_direction = ["kx", "ky", "kz"]
+	
+		for i in range(len(pos_est)):
 		
-
+			plot_directory_name = str(miller_pos_est[i][0]) + str(miller_pos_est[i][1]) + str(miller_pos_est[i][2])
+			
+			for j in range(len(lineout_direction)):
+				
+				gnuplot_input = cwd + "/plots_of_data/" + plot_directory_name + "/" + lineout_direction[j] + "_gnuplot.in"
+			
+				subprocess.call("gnuplot " + gnuplot_input, shell=True)		
+		
+				print "graph made"
+			
+	exit()
 
 	intensity_integrated_max_ind = np.argmax(intensity_integrated)
 	
