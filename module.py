@@ -1999,8 +1999,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				subprocess.call("gnuplot " + gnuplot_input, shell=True)		
 		
 				print "graph made"
-			
-	exit()
 
 	intensity_integrated_max_ind = np.argmax(intensity_integrated)
 	
