@@ -2387,7 +2387,6 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 
 	t1 = time.clock()
 	tt = t1 - t0
-	time_elapsed = time.localtime()
 	t = open('time.pkfd', 'a')
 	t.write("\nmod.calc_debye_temperature took \t\t" + str(tt) + " s to complete.")
 
@@ -2399,29 +2398,114 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 	
 ###########################################################################
 
-"""
 
-def profile_peaks():
+
+def profile_peaks(source, timestep, initial_hkl_pos_est, make_plots):
 		
+	import time	
 	import numpy as np
+	import os
+	import subprocess
+	
+	t0 = time.time()
 	
 	# This function profiles each peak by plotting each intensity point vs
 	# distance from the central position.
 	
-	def intensity_vs_distance():
+	cwd = os.getcwd()
 	
-		for i in range(len(pos_est)):
+	intensity = [0] * len(initial_hkl_pos_est)
+	k_diff_abs = [0] * len(initial_hkl_pos_est)
 	
-			datafile = 
+	for i in range(len(initial_hkl_pos_est)):
+
+		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+
+		datafile = str(cwd) + "/soh_output/" + source + "." + str(timestep) + "." + peak_dir + ".ft"
+	
+		kx, ky, kz, intensity[i] = np.loadtxt(datafile, skiprows=1, usecols=(0,1,2,5), unpack=True)
+	
+		k_diff_abs[i] = [0] * len(intensity[i])
+	
+		peak_position = np.argmax(intensity[i])
 		
-			kx, ky, kz, intensity = np.loadtxt(datafile, skiprows=1, usecols=(), unpack=True)
+		gsqr_centre = (kx[peak_position] ** 2) + (ky[peak_position] ** 2) + (kz[peak_position] ** 2) 
+	
+		for j in range(len(intensity[i])):
 		
-			peak_position = np.argmax()
-		
-			for j in range(len(kx)):
+			gsqr = (kx[j] ** 2) + (ky[j] ** 2) + (kz[j] ** 2) 
 			
-	"""			
+			k_diff_abs[i][j] = np.sqrt(abs(gsqr - gsqr_centre))
 			
+		
+	if make_plots == True:
+	
+		rm_command = "rm -r " + cwd + "/peak_histograms"
+		subprocess.call(rm_command, shell=True)
+		mkdir_command = "mkdir " + cwd + "/peak_histograms"
+		subprocess.call(mkdir_command, shell=True)
+		
+		
+		for i in range(len(initial_hkl_pos_est)):
+		
+			peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+		
+			location = str(cwd) + "/peak_histograms/" + peak_dir
+		
+			mkdir_command_2 = "mkdir " + location
+		
+			subprocess.call(mkdir_command_2, shell=True)
+		
+			dat_filename = location + "/histogram.dat"
+		
+			h = open(dat_filename, "w")
+			h.write("#k_differential intensity")
+			
+			for j in range(len(intensity[i])):
+			
+				h.write("\n" + str(k_diff_abs[i][j]) + " " + str(intensity[i][j]) + "")
+				
+			h.close()
+			
+			in_filename = location + "/histogram_gnuplot.in"
+			plot_name = "histogram_" + peak_dir + ".png"
+			
+			g = open(in_filename, "w")
+			g.write(
+			"set terminal png size 1600,1200 enhanced font 'Helvetica,20'"
+			"\nset output '" + str(plot_name)  + "'"
+			"\nplot '" + dat_filename + "' using 1:2"
+			)
+			
+			g.close()
+		
+		
+	if make_plots == True:
+	
+		for i in range(len(initial_hkl_pos_est)):
+		
+			peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+		
+			location = str(cwd) + "/peak_histograms/" + peak_dir
+			
+			in_filename = location + "/histogram_gnuplot.in"
+			
+			plot_name = "histogram_" + peak_dir + ".png"
+		
+			subprocess.call("gnuplot < " + str(in_filename), shell=True)
+			
+			mv_command = "mv " + plot_name + " " + location
+			
+			subprocess.call(mv_command, shell=True)
+		
+					
+	tf = time.time()
+	tt = tf - t0			
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.profile_peaks took \t\t" + str(tt) + " s to complete.")
+	
+	return;
+	
 				
 ############################################################################
 # This function gives the final message at the end of a run.
@@ -2446,7 +2530,13 @@ def checkout(xrd_temperatures, xrd_temperature_labels, md_temperatures, md_tempe
 	
 	for i in range(len(xrd_temperatures)):
 	
-		print xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K"
-		f.write(xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K\n")
+		percent_off = 100.0 * (abs(xrd_temperatures[i] - md_temperatures[0]))/md_temperatures[0]
+		
+		print xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K \t\t" + str(percent_off) + " % from the 2D MD temperature."
+		f.write(xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K\n" + str(percent_off) + " % from the 2D MD temperature.")
+		
+		
+		
+	return;
 		
 		

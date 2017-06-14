@@ -21,7 +21,7 @@ k_steps_accurate = 1e3 + 1
 t0, tpy0 = mod.startwatch()
 
 
-gsqr_est, pos_est = mod.make_fcc(gsqr_max =3, negative_k = True, remove_000 = True)
+gsqr_est, pos_est = mod.make_fcc(gsqr_max = 30, negative_k = True, remove_000 = True)
 
 
 rot_pos_est = mod.enforce_rotation_111(pos_est = pos_est)
@@ -60,6 +60,10 @@ temperature_est_simple_sum, central_temperature_simple_sum = mod.calc_temperatur
 
 
 temperature_est_complex_integration, central_temperature_complex_integration = mod.calc_temperature_xrd(slope_ln_intensity_vs_gsqr = slope_ln_complex_intensity_integrated_vs_gsqr, constant_ln_intensity_vs_gsqr = constant_ln_complex_intensity_vs_gsqr, gruneisen_uncompressed = 1.98, a_lattice = a_lattice, compression_factor = compression_factor, mass = mass, pos = pos_integrated, gsqr = gsqr_integrated, uncompressed_pos_est = pos_est, uncompressed_gsqr_est = gsqr_est, plot_name = "ln_I_vs_Gsqr.png", show_plot = False, ln_intensity = ln_complex_intensity_integrated, md_temperature_3d = md_temperature_3d, md_temperature_2d = md_temperature_2d, debye_temperature_uncompressed = 319.059756455) 
+
+
+
+mod.profile_peaks(source = source, timestep = timestep, initial_hkl_pos_est = pos_est, make_plots = make_plots)
 
 
 
