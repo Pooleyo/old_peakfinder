@@ -10,26 +10,30 @@ def startwatch():
 	import time
 
 	start_time = time.localtime()
-	t0 = time.clock()
+	tpy0 = time.clock()
+	t0 = time.time()
 
 	t = open('time.pkfd', 'w')
 	t.write("Peakfinder started at " + str(start_time[3]) + ":" + str(start_time[4]) + ":" + str(start_time[5]) + " " + str(start_time[2]) + "/" + str(start_time[1]) + "/" + str(start_time[0]) + "\n")
 	t.close()
 	
-	return t0
+	return t0, tpy0
 	
 	
 ########################################################################
 # Closes the time log of the run.
 
-def stopwatch(t0):
+def stopwatch(t0, tpy0):
 
 	import time
 
 	stop_time = time.localtime()
-	tf = time.clock()
+	tpyf = time.clock()
+	tf = time.time()
+	
+	tpyt = tpyf - tpy0
 	tt = tf - t0
-
+	
 	
 	hours = int(tt/3600)
 	minutes = int((tt - (hours * 3600))/60)
@@ -38,11 +42,13 @@ def stopwatch(t0):
 	time_elapsed = [hours, minutes, seconds]	
 
 	t = open('time.pkfd', 'a')
-	t.write("\nPeakfinder finished at " + str(stop_time[3]) + ":" + str(stop_time[4]) + ":" + str(stop_time[5]) + " " + str(stop_time[2]) + "/" + str(stop_time[1]) + "/" + str(stop_time[0]) + "\n")
-	t.write("\n\nPeakfinder took " + str(tt) + " s (or " + str(time_elapsed[0]) + ":" + str(time_elapsed[1]) + ":" + str(time_elapsed[2]) + ") to complete.")
+	t.write("\n\nPeakfinder finished at " + str(stop_time[3]) + ":" + str(stop_time[4]) + ":" + str(stop_time[5]) + " " + str(stop_time[2]) + "/" + str(stop_time[1]) + "/" + str(stop_time[0]) + "\n")
+	t.write("\nPeakfinder took " + str(tt) + " s (or " + str(time_elapsed[0]) + "h " + str(time_elapsed[1]) + "m " + str(time_elapsed[2]) + "s) to complete.")
+	t.write("\n\nThe python portion took " + str(tpyt) + " s.")
 	t.close()
-
 	
+	print "\nPeakfinder took " + str(tt) + " s (or " + str(time_elapsed[0]) + "h " + str(time_elapsed[1]) + "m " + str(time_elapsed[2]) + "s) to complete."
+
 	return
 	
 	
@@ -167,7 +173,7 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 	import numpy as np
 	import time
 	
-	t0 = time.clock()
+	t0 = time.time()
 	
 	
 	range_num = int(np.sqrt(gsqr_max) + 1.0)
@@ -236,20 +242,13 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 					else:
 					
 						pass 
-						
-	print pos_est
-	print gsqr_est  
-	print "start of while"	
+
 	
 	i = 0
 	
-	while i + 1 <= len(pos_est):
+	print "Removing peaks with too large gsqr..."
 	
-		print i
-		
-		
-		print pos_est[i]
-		print gsqr_est[i]
+	while i + 1 <= len(pos_est):
 			
 		if gsqr_est[i] <= gsqr_max:
 		
@@ -262,15 +261,7 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 			del gsqr_est[i]
 			del pos_est[i]
 			continue
-		
-		
-		
-	print pos_est
-	print gsqr_est
-
-			
-	
-		  	
+  	
 
 	
 	# This section prints to the console.
@@ -294,11 +285,11 @@ def make_fcc(gsqr_max, negative_k, remove_000):
 	
 	f.close()
 	
-	t1 = time.clock()
+	t1 = time.time()
 	tt = t1 - t0
 	time_elapsed = time.localtime()
 	t = open('time.pkfd', 'a')
-	t.write("\nmod.make_fcc took " + str(tt) + " s (or " + str(time_elapsed[3]) + ":" + str(time_elapsed[4]) + ":" + str(time_elapsed[5]) + ") to complete.")	
+	t.write("\nmod.make_fcc took \t\t\t\t" + str(tt) + " s to complete.")	
 	
 	return gsqr_est, pos_est
 	
@@ -324,7 +315,9 @@ def enforce_rotation_111(pos_est):
 	
 
 	import numpy as np
+	import time
 	
+	t0 = time.time()
 	
 
 	theta_x = np.pi/2.0 - np.arctan(1/np.sqrt(2)) # Calculated by looking at a 111 vector which has been rotated by 45 degrees around the z-axis.
@@ -366,6 +359,12 @@ def enforce_rotation_111(pos_est):
 
 	
 	f.close()
+	
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.enforce_rotation_111 took \t\t\t" + str(tt) + " s to complete.")	
 
 	return rot_pos_est
 	
@@ -390,6 +389,12 @@ def cut_atoms(source, xlo, xhi, ylo, yhi, zlo, zhi):
 	# xs_ind, ys_ind, zs_ind, vx_ind, vy_ind, vz_ind, fx_ind, fy_ind, fz_ind -> stores the indices of the columns which contain the atomic coordinates (xs, ys, zs), the velocity components of each atom (vx, vy, vz), and the force components on each atom (fx, fy, fz).
 	# xlo, xhi, ylo, yhi, zlo, zhi -> floats that describe the boundary of the volume to be cut to. These values are between 0 and 1 (inclusive) and are fractions of the box dimensions.
 	# atom_counter -> counts the number of atoms in the new cut .atom file.
+
+
+	import time
+	
+	t0 = time.time()
+	
 
 	intermediate_file = "intermediate.file"
 
@@ -612,6 +617,13 @@ def cut_atoms(source, xlo, xhi, ylo, yhi, zlo, zhi):
 	f.close()
 
 
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.cut_atoms took \t\t\t\t" + str(tt) + " s to complete.")	
+
+
 	return lammps_file_name, atom_counter
 
 
@@ -626,7 +638,9 @@ def get_md_temperature(source, mass, piston_velocity):
 
 	import numpy as np
 	import scipy.constants as codata
-
+	import time
+	
+	t0 = time.time()
 	
 	atoms_vx, atoms_vy, atoms_vz = np.loadtxt(source, skiprows=9, usecols=(5, 6, 7), unpack = True) #Atom velocities are loaded from the .atom or .atomcut file.
 
@@ -687,6 +701,11 @@ def get_md_temperature(source, mass, piston_velocity):
 	
 	f.close()
 
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.get_md_temperature took \t\t\t" + str(tt) + " s to complete.")	
 
 
 	return md_temperature_2d, md_temperature_3d
@@ -707,7 +726,9 @@ def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_
 	import os
 	from scipy.optimize import curve_fit
 	import matplotlib.pyplot as plt
-
+	import time
+	
+	t0 = time.time()
 
 
 	# Variables:
@@ -1116,137 +1137,14 @@ def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_
 	
 	f.close()
 
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.compensate_for_compression took \t\t" + str(tt) + " s to complete.")	
 
 
 	return compressed_pos_est, compressed_gsqr_est, compression_factor
-
-
-##################################################################
-#
-
-def find_actual_peak_centres(pos_est, initial_pos_est, del_kx, del_ky, del_kz, k_steps_accurate, compression_factor, rotated_to_111, run_soh, mass, a_lattice, timestep, make_plots, source):
-
-	import subprocess
-	import numpy as np
-	import os
-	import matplotlib.pyplot as plt
-	
-	
-	if rotated_to_111 == True:
-	
-		k_start = [0] * len(pos_est)
-		k_stop = [0] * len(pos_est)
-		
-		subprocess.call("mkdir soh_accurate_lineouts", shell=True)
-				
-		for i in range(len(pos_est)):
-		
-			k_start[i] = list(pos_est[i])
-			k_stop[i] = list(pos_est[i])
-		
-			k_start[i][0] = 0.99 * (pos_est[i][0] - (del_kx * compression_factor[0]))
-			k_stop[i][0] = 1.01 * (pos_est[i][0] + (del_kx * compression_factor[0]))
-		
-			k_start[i][1] = 0.99 * (pos_est[i][1] - (del_ky * compression_factor[1]))
-			k_stop[i][1] = 1.01 * (pos_est[i][1] + (del_ky * compression_factor[1]))
-		
-			k_start[i][2] = 0.99 * (pos_est[i][2] - (del_kz * compression_factor[2]))
-			k_stop[i][2] = 1.01 * (pos_est[i][2] + (del_kz * compression_factor[2]))
-		
-		
-		
-			current_working_directory = os.getcwd()
-			
-			subprocess.call("mkdir " + str(current_working_directory) + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]), shell=True)	
-
-
-			k_lineout_direction = ["x", "y", "z"]
-
-			#Then we write the soh input file to run the lineouts in each direction.
-			for j in range(len(k_lineout_direction)):
-
-
-
-			
-				k_lineout_file = current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/k" + k_lineout_direction[j] + ".soh"
-
-
-
-
-
-				f = open(k_lineout_file, "w")
-
-
-				f.write("VERBOSE\t\t\t\t\t0\n\n"
-				"FILE_TYPE\t\t\t\tlammps-multi\n"
-				"DATA_FILE\t\t\t\t" + str(source) + "\n"
-				"APPEND_FILE_NAME\t\tk" + str(k_lineout_direction[j]) + "_accurate_lineout\n\n"
-				"PLOT_OUTPUT\t\t\t\tpdf\n\n"
-				"COORDS_SCALED\n"
-				"SET_MASS\t\t" + str(mass) + "\n\n"
-				"SET_A_CELL\t\t\t\t" + str(a_lattice) + "\n\n"
-				"CALC_1D_FT\n\n"
-				"SET_K_START\t\t\t\t" + str(k_start[i][0]) + " " + str(k_start[i][1]) + " " + str(k_start[i][2]) + "\n"
-				"SET_K_STOP\t\t\t\t" + str(k_stop[i][0]) + " " + str(k_stop[i][1]) + " " + str(k_stop[i][2]) + "\n"
-				"SET_NK\t\t\t\t\t" + str(k_steps_accurate) + "\n")
-
-
-				f.close() # Remember to close the file before you try to run it!
-
-
-
-
-
-
-
-				command_lineout = 'mpiexec -np 24 sonOfHoward ' + k_lineout_file # Stores the bash command we will run. If we want to make it faster, we can increase the processor_number here, we just have to make sure we don't get in anyone else's way!
-	
-				if run_soh == True:
-					subprocess.call(command_lineout, shell=True)
-					
-					subprocess.call("mv " + current_working_directory + "/" + str(source) + "." + str(timestep) + ".k" + str(k_lineout_direction[j]) + "_accurate_lineout.ft " + current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/", shell=True )
-	
-	
-	
-	
-		if make_plots == True:
-		
-			k = [0] * len(pos_est)
-		
-			for i in range(len(pos_est)):
-			
-				k[i] = [0,0,0]
-			
-
-		
-				for j in range(len(k[i])):
-
-				
-					location = current_working_directory + "/soh_accurate_lineouts/" + str(initial_pos_est[i][0]) + str(initial_pos_est[i][1]) + str(initial_pos_est[i][2]) + "/" 
-					filename = str(source) + "." + str(timestep) + ".k" + str(k_lineout_direction[j]) + "_accurate_lineout.ft"
-					
-					k[i][j], y = np.loadtxt(location + filename, usecols=(j,3), skiprows=1, unpack=True)		
-	
-			
-					plt.scatter(k[i][j], y)
-					
-					plot_name = "k" + str(k_lineout_direction[j] + "_lineout.png")
-					plt.savefig(location + plot_name)
-					plt.close()
-	
-	
-			
-	
-	
-	
-	else:
-	
-		print "rotated_to_111 set to False. Program will now exit, since the implications of this setting haven't been considered yet."
-		exit()
-
-	
-
-	return #accurate_pos_est;
 
 
 
@@ -1289,6 +1187,10 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	import copy
 
 
+	t0 = time.time()
+
+	print "get_peak_intensities started..."
+
 	current_working_directory = os.getcwd()
 
 	
@@ -1318,7 +1220,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 
 			peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
 			
-			print peak_dir
+
 			
 
 			subprocess.call("mkdir " + current_working_directory + "/" + peak_dir, shell=True)
@@ -1329,15 +1231,12 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 		
 
 				width = del_k[j] * (1.0 + over_width)
-				print "width = " + str(width)
 				
 				k_start = pos_est[i][j] - width
 				k_end = pos_est[i][j] + width			
 			
 				print "\nPeak " + peak_dir
-				print "k_start = " + str(k_start)
-				print "k_end = " + str(k_end)
-				
+
 			
 
 
@@ -1484,18 +1383,11 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 				ind = numpy.argmax(intensity_temp)
 				accurate_pos_est[i][j] = k_temp[ind]
 
-
-				#print accurate_pos_est
-				#print initial_hkl_pos_est
-
-
-
 				
 				
 				for k in range(len(k_temp)):
 					
 					intensity_diff_left = intensity_temp[ind - k] - intensity_temp[ind - k - 1]
-					#print intensity_diff_left
 
 
 					if ind - k - 1 < 0:
@@ -1509,8 +1401,6 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 					
 						k_acc_start = k_temp[ind - k]
 						print "\nIntensity diff left for " + peak_dir + " " + lineout_direction[j] + " = " + str(intensity_diff_left)
-						print k_temp
-						print intensity_temp
 						break
 						
 					else:
@@ -1527,14 +1417,13 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 						exit() 
 					
 					intensity_diff_right = intensity_temp[ind + k] - intensity_temp[ind + k + 1]
-					#print intensity_diff_right
+
 					
 					if intensity_diff_right <= 0.0:
 					
 						k_acc_end = k_temp[ind + k]
 						print "Intensity diff right for " + peak_dir + " = " + str(intensity_diff_right)
-						print k_temp
-						print intensity_temp
+
 						break
 						
 					else:
@@ -1544,7 +1433,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 					
 				accurate_breadths[i][j] = [k_acc_start, k_acc_end]
 				
-				print accurate_breadths[i][j]
+
 				
 		
 		return accurate_pos_est, accurate_breadths;
@@ -1555,8 +1444,6 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	
 	print "\nCreated accurate estimates of peak centres and breadths.\n"
 	
-	print accurate_pos_est
-	print accurate_breadths
 	
 
 
@@ -1580,18 +1467,6 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 		kz_end = accurate_breadths[i][2][1]
 
 
-		print "\nPeak " + peak_dir + ":"
-		print "\nCentre:"
-		print "Old = " + str(pos_est[i])
-		print "New = " + str(accurate_pos_est[i])
-		print "\nBreadth:"
-		print "Old = " + str(accurate_breadths[i])
-		print kx_start
-		print kx_end
-		print ky_start
-		print ky_end
-		print kz_start
-		print kz_end
 
 
 
@@ -1675,7 +1550,10 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	
 	f.close()
 	
-	
+	t1 = time.time()
+	tt = t1 - t0
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.get_peak_intensities took \t\t\t" + str(tt) + " s to complete.")	
 
 
 	return;
@@ -1692,6 +1570,11 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	import os
 	import subprocess
 	import matplotlib.pyplot as plt
+	import time
+	
+	t0 = time.time()
+	
+	print "get_ln_intensity started..."
 	
 	cwd = os.getcwd()
 	
@@ -1702,7 +1585,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 
 	simple_intensity_integrated = [0] * len(pos_est) # Stores a simple sum of intensities of each peak.
 	complex_intensity_integrated = [0] * len(pos_est) # Stores the sum of intensity*volumes for each peak.
-	intensity_integrated = complex_intensity_integrated
 
 	
 	gsqr_integrated = [0] * len(pos_est)
@@ -1713,12 +1595,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	ky = [0] * len(pos_est)
 	kz = [0] * len(pos_est)
 	
-	print "Values:"
-	print compression_factor
-	print str(del_kx) + "->" + str(del_kx * compression_factor[0])
-	print str(del_ky) + "->" + str(del_ky * compression_factor[1])
-	print str(del_kz) + "->" + str(del_kz * compression_factor[2])
-
 
 	f = open("log.pkfd", "a")
 	
@@ -1728,11 +1604,9 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	"timestep = " + str(timestep) + "\n"
 	"a_lattice = " + str(a_lattice) + "\n")
 
-
-	print "test code start"
 	first_peak_dir = str(initial_hkl_pos_est[0][0]) + str(initial_hkl_pos_est[0][1]) + str(initial_hkl_pos_est[0][2])
 		
-	print first_peak_dir
+
 		
 	first_soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + first_peak_dir+ ".ft" # Stores the name of the soh output file.
 
@@ -1764,8 +1638,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				if kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == min(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == min(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == min(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord) or kx_coord[j] == max(kx_coord) and ky_coord[j] == max(ky_coord) and kz_coord[j] == max(kz_coord):
 				
 					
-					#intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/8.0)				
-					#print "Corner at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+					
 					points_in_corner += 1
 					classification_ind = 3
 					volume_fraction[j] = 0.125
@@ -1773,9 +1646,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				
 				# All the edge points must go here.
 				else:
-
-					#intensity_volume[j] = tmp_intensity[j] * dk_vol * 0.25									
-					#print "Edge at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+					
 					points_in_edge += 1
 					classification_ind = 2
 					volume_fraction[j] = 0.25
@@ -1783,24 +1654,16 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 			# All the surface points must go here.	
 			else:
 
-				#intensity_volume[j] = tmp_intensity[j] * dk_vol * (1.0/2.0)								
-				#print "Surface at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"	
 				points_in_surface += 1
 				classification_ind = 1
 				volume_fraction[j] = 0.5
 				
 		# All the bulk points must go here.
 		else:
-			
-			#intensity_volume[j] = tmp_intensity[j] * dk_vol			
-			#print "Bulk at (" + str(kx_coord[j]) + ", " + str(ky_coord[j]) + ", " + str(kz_coord[j]) + ")"
+
 			points_in_bulk += 1
 			classification_ind = 0
 			volume_fraction[j] = 1.0
-
-		#h.write('\n' + str(kx_coord[j]) + ' ' + str(ky_coord[j]) + ' ' + str(kz_coord[j]) + ' ' + str(intensity_volume[j]) + ' ' + str(tmp_intensity[j]) + ' ' + classification[classification_ind])
-
-	#h.close()	
 
 	print "Finished sorting k-space points."
 
@@ -1820,6 +1683,8 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	
 	dk_vol_var = 1.0/(k_steps - 1.0) # Division is computationally expensive so best to do this outside the loop, then multiply it in.
 
+	print "Integrating intensities..."
+
 	for i in range(len(pos_est)):
 
 		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
@@ -1831,8 +1696,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		kx_coord, ky_coord, kz_coord, tmp_intensity = np.loadtxt(soh_out, skiprows = 1, usecols = (0,1,2,5), unpack=True)   
 
 		dk_vol = ( (max(kx_coord) - min(kx_coord)) * dk_vol_var) * ( (max(ky_coord) - min(ky_coord)) * dk_vol_var ) * ( (max(kz_coord) - min(kz_coord)) * dk_vol_var )
-
-		print "\nk-space volume element = " + str(dk_vol) + "\n"
 
 		peak_position_ind = np.argmax(tmp_intensity)
 
@@ -1849,8 +1712,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		simple_intensity_integrated[i] = sum(tmp_intensity)
 		
 		intensity_volume = list(tmp_intensity)
-		
-		print "This peak has " + str(len(tmp_intensity)) + " points. We expect there to be " + str(expected_total) + "."	
 	
 		for j in range(len(tmp_intensity)):
 
@@ -1859,8 +1720,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 		complex_intensity_integrated[i] = sum(intensity_volume)
 	
-		print "\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i])
-		print "Simple sum of intensities = " + str(simple_intensity_integrated[i])
 		f.write("\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i]) + "\n"
 		"Simple sum of intensities = " + str(simple_intensity_integrated[i]) )
 		
@@ -1953,8 +1812,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 					d.write(str(k_value[j][k]) + " " + str(intensity_value[j][k]) + "\n")
 					
 				d.close()
-				
-				print "data written"
 	
 	
 	
@@ -1981,8 +1838,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				)
 				g.close()
 				
-				print "gnuplot input written"
-				
 				
 	if make_plots == True:
 	
@@ -1997,55 +1852,82 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 				gnuplot_input = cwd + "/plots_of_data/" + plot_directory_name + "/" + lineout_direction[j] + "_gnuplot.in"
 			
 				subprocess.call("gnuplot " + gnuplot_input, shell=True)		
-		
-				print "graph made"
 
-	intensity_integrated_max_ind = np.argmax(intensity_integrated)
-	
-	
-	print "\nThe most intense peak is at position: " + str(miller_pos_est[intensity_integrated_max_ind]) + ", found at " + str(pos_est[intensity_integrated_max_ind]) + "." # This message is to verify that the peak intensities are behaving as expected. For example, if remove_000 = False, we will expect the maximum intensity of all peaks to be at 000. 
+	# This section works on the complex_integrated_intensity.
+
+	complex_intensity_integrated_max_ind = np.argmax(complex_intensity_integrated)
 
 
-
-	ln_intensity_integrated = np.log(intensity_integrated)
+	ln_complex_intensity_integrated = np.log(complex_intensity_integrated)
 	
 	
-	ln_norm_intensity_integrated = np.log(intensity_integrated/max(intensity_integrated))
+	ln_norm_complex_intensity_integrated = np.log(complex_intensity_integrated/max(complex_intensity_integrated))
 	
 	
-	ln_norm_intensity_integrated.tolist()
+	ln_norm_complex_intensity_integrated.tolist()
 	
 	
+	g = open("ln_complex_intensity_vs_g_squared.dat", "w")
 	
-	g = open("ln_intensity_vs_g_squared.dat", "w")
-	
-	g.write("ln_intensity g_squared h k l\n")
+	g.write("ln_complex_intensity g_squared h k l\n")
 	
 	for i in range(len(pos_est)):
 		
-		g.write(str(ln_intensity_integrated[i]) + " " + str(gsqr_integrated[i]) + " " + str(miller_pos_est[i][0]) + " " + str(miller_pos_est[i][1]) + " " + str(miller_pos_est[i][2]) + "\n")
+		g.write(str(ln_complex_intensity_integrated[i]) + " " + str(gsqr_integrated[i]) + " " + str(miller_pos_est[i][0]) + " " + str(miller_pos_est[i][1]) + " " + str(miller_pos_est[i][2]) + "\n")
+	
+	g.close()
+	
+	
+	# This section works on the simple_integrated_intensity.
+
+	simple_intensity_integrated_max_ind = np.argmax(simple_intensity_integrated)
+
+
+	ln_simple_intensity_integrated = np.log(simple_intensity_integrated)
+	
+	
+	ln_norm_simple_intensity_integrated = np.log(simple_intensity_integrated/max(simple_intensity_integrated))
+	
+	
+	ln_norm_simple_intensity_integrated.tolist()
+	
+	
+	g = open("ln_simple_intensity_vs_g_squared.dat", "w")
+	
+	g.write("ln_simple_intensity g_squared h k l\n")
+	
+	for i in range(len(pos_est)):
+		
+		g.write(str(ln_simple_intensity_integrated[i]) + " " + str(gsqr_integrated[i]) + " " + str(miller_pos_est[i][0]) + " " + str(miller_pos_est[i][1]) + " " + str(miller_pos_est[i][2]) + "\n")
 	
 	g.close()
 	
 	#This part makes the final log entry for the function.	
 	
 	f.write("\nFunction get_ln_intensity returned:\n"
-	"This function obtained the integrated intensity, and then returns ln of the intensity."
+	"This function obtains the integrated intensity and then returns ln of the intensity."
 	"\nIt also returns the gsqr values of the estimated peak centres.")
 	
 	f.close()
 	
+	t1 = time.time()
+	tt = t1 - t0
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.get_ln_intensity took \t\t\t" + str(tt) + " s to complete.")
 
-	return pos_integrated, gsqr_integrated, ln_intensity_integrated, ln_norm_intensity_integrated
+	return pos_integrated, gsqr_integrated, ln_complex_intensity_integrated, ln_norm_complex_intensity_integrated, ln_simple_intensity_integrated, ln_norm_simple_intensity_integrated
 	
 	
 ################################################################
 
 def get_slope_ln_intensity_vs_gsqr(gsqr, ln_intensity):
 
-
 	import numpy as np
+	import time
+	
+	t0 = time.time()
 
+	print "\nget_slope_ln_intensity_vs_gsqr started..."
 
 	slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gsqr  = np.polyfit(gsqr, ln_intensity, 1)
 
@@ -2069,6 +1951,11 @@ def get_slope_ln_intensity_vs_gsqr(gsqr, ln_intensity):
 	
 	f.close()
 
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.get_slope_ln_intensity took \t\t" + str(tt) + " s to complete.")
 
 	return slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gsqr
 	
@@ -2085,8 +1972,11 @@ def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gs
 	import matplotlib.pyplot as plt
 	import scipy.constants as codata
 	from scipy.integrate import quad
+	import time
 	
-	
+	t0 = time.time()
+		
+	print "\ncalc_temperature_xrd started..."
 
 	compressed_volume = (a_lattice ** 3)/( compression_factor[0] * compression_factor[1] * compression_factor[2])
 	
@@ -2449,8 +2339,13 @@ def calc_temperature_xrd(slope_ln_intensity_vs_gsqr, constant_ln_intensity_vs_gs
 	
 	f.close()
 
+	t1 = time.time()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.calc_temperature_xrd took \t\t\t" + str(tt) + " s to complete.")
 
-	return temperature_est
+	return temperature_est, central_temperature_mean
 
 
 
@@ -2463,7 +2358,9 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 
 	import scipy.constants as codata
 	import numpy as np
-
+	import time
+	
+	t0 = time.clock()
 
 
 	debye_normalisation_factor = (10 ** 20) * md_temperature * 3 * codata.value("Planck constant") * codata.value("Planck constant") * codata.value("Avogadro constant") / (mass  * (10 ** -3) * codata.value("Boltzmann constant") * 4 * np.pi * np.pi)
@@ -2488,6 +2385,11 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 	
 	f.close()
 
+	t1 = time.clock()
+	tt = t1 - t0
+	time_elapsed = time.localtime()
+	t = open('time.pkfd', 'a')
+	t.write("\nmod.calc_debye_temperature took \t\t" + str(tt) + " s to complete.")
 
 
 	return debye_temperature
@@ -2496,3 +2398,55 @@ def calc_debye_temperature(slope_ln_intensity_vs_gsqr, mass, md_temperature):
 	
 	
 ###########################################################################
+
+"""
+
+def profile_peaks():
+		
+	import numpy as np
+	
+	# This function profiles each peak by plotting each intensity point vs
+	# distance from the central position.
+	
+	def intensity_vs_distance():
+	
+		for i in range(len(pos_est)):
+	
+			datafile = 
+		
+			kx, ky, kz, intensity = np.loadtxt(datafile, skiprows=1, usecols=(), unpack=True)
+		
+			peak_position = np.argmax()
+		
+			for j in range(len(kx)):
+			
+	"""			
+			
+				
+############################################################################
+# This function gives the final message at the end of a run.
+
+def checkout(xrd_temperatures, xrd_temperature_labels, md_temperatures, md_temperature_labels):
+	
+	f = open("log.pkfd", "a")
+
+	print "\n\n#########################\n\npeakfinder.py finished\n\n#########################"
+	f.write("\n\n#########################\n\npeakfinder.py finished\n\n#########################")
+	
+	print "\n\nThe MD temperatures are:\n"
+	f.write("\n\nThe MD temperatures are:\n")
+	
+	for i in range(len(md_temperatures)):
+	
+		print md_temperature_labels[i] + "\t\t= " + str(md_temperatures[i]) + " K"
+		f.write(md_temperature_labels[i] + "\t\t= " + str(md_temperatures[i]) + " K\n")
+
+	print "\nThe estimated x-ray diffraction temperatures are:\n"
+	f.write("\nThe estimated x-ray diffraction temperatures are:\n")
+	
+	for i in range(len(xrd_temperatures)):
+	
+		print xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K"
+		f.write(xrd_temperature_labels[i] + "\t= " + str(xrd_temperatures[i]) + " K\n")
+		
+		
