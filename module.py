@@ -720,7 +720,6 @@ def get_md_temperature(source, mass, piston_velocity):
 
 def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_soh, k_steps, pos_est, a_lattice, mass, show_plot, timestep):
 
-
 	import numpy as np
 	import subprocess
 	import os
@@ -1152,7 +1151,7 @@ def compensate_for_compression(source, initial_hkl_pos_est, rotated_to_111, run_
 # This function creates a box around each point in reciprocal space and performs a fourier transform of the atoms in a lammps .atom file with the reciprocal lattice vectors inside the box. This function creates input files for SoH, then runs SoH for each input file. It takes as input: source (str), pos_est (list), compression_factor (list), initial_hkl_pos_est (list), a_lattice (float), del_kx(float), del_ky(float), del_kz(float), k_steps (int), run_soh (bool), mass (float). It does not produce output variables. Instead it creates files which contain the SoH outputs, including intensities at each point.
 
 
-def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_est, a_lattice, mass, del_kx, del_ky, del_kz, k_steps, k_steps_accurate, run_soh, timestep):
+def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_est, a_lattice, mass, del_kx, del_ky, del_kz, k_steps, k_steps_accurate, run_soh, timestep, make_plots):
 
 
 
@@ -1207,11 +1206,8 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 		print "Finding accurate centre and breadths for each peak..."
 		
 		acc_dir = "accurate_peak_lineouts"
-		
-		subprocess.call("rm -r " + acc_dir, shell = True)
+
 		subprocess.call("mkdir " + acc_dir, shell=True)
-		
-		print "accurate_peak_lineouts directory made"
 		
 		for i in range(len(pos_est)):
 		
@@ -1377,8 +1373,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 				
 		
 				k_temp, intensity_temp = numpy.loadtxt(datafile, skiprows=1, usecols=(j,5), unpack=True)
-		
-				accurate_pos_est[i][j] = max(k_temp)
+				
 				
 				ind = numpy.argmax(intensity_temp)
 				accurate_pos_est[i][j] = k_temp[ind]
@@ -1397,7 +1392,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 
 
 
-					if intensity_diff_left <= 0.0:
+					if intensity_diff_left < 0.0:
 					
 						k_acc_start = k_temp[ind - k]
 						print "\nIntensity diff left for " + peak_dir + " " + lineout_direction[j] + " = " + str(intensity_diff_left)
@@ -1419,8 +1414,10 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 					intensity_diff_right = intensity_temp[ind + k] - intensity_temp[ind + k + 1]
 
 					
-					if intensity_diff_right <= 0.0:
+					if intensity_diff_right < 0.0:
 					
+						print intensity_temp[ind + k] 
+						print intensity_temp[ind + k + 1]
 						k_acc_end = k_temp[ind + k]
 						print "Intensity diff right for " + peak_dir + " = " + str(intensity_diff_right)
 
@@ -1430,17 +1427,21 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 						
 						continue
 					
-					
+				
 				accurate_breadths[i][j] = [k_acc_start, k_acc_end]
 				
-
+				print str(peak_dir)
+				print "k_start = " + str(accurate_breadths[i][j][0]) 
+				print "k_stop = " + str(accurate_breadths[i][j][1]) 
 				
-		
+
 		return accurate_pos_est, accurate_breadths;
 				
 					
 
-	accurate_pos_est, accurate_breadths = accurate_peak_centre_and_breadth(0.5, True)
+	accurate_pos_est, accurate_breadths = accurate_peak_centre_and_breadth(0.5, make_plots)
+	
+	
 	
 	print "\nCreated accurate estimates of peak centres and breadths.\n"
 	
@@ -2440,8 +2441,6 @@ def profile_peaks(source, timestep, initial_hkl_pos_est, make_plots):
 		
 	if make_plots == True:
 	
-		rm_command = "rm -r " + cwd + "/peak_histograms"
-		subprocess.call(rm_command, shell=True)
 		mkdir_command = "mkdir " + cwd + "/peak_histograms"
 		subprocess.call(mkdir_command, shell=True)
 		
@@ -2497,6 +2496,7 @@ def profile_peaks(source, timestep, initial_hkl_pos_est, make_plots):
 			mv_command = "mv " + plot_name + " " + location
 			
 			subprocess.call(mv_command, shell=True)
+			
 		
 					
 	tf = time.time()
@@ -2505,6 +2505,24 @@ def profile_peaks(source, timestep, initial_hkl_pos_est, make_plots):
 	t.write("\nmod.profile_peaks took \t\t" + str(tt) + " s to complete.")
 	
 	return;
+	
+	
+############################################################################
+# This function performs lineouts across the diagonals of the 	
+	
+def big_diagonals():
+
+	import os
+
+	cwd = os.getcwd()
+
+	acc_dir = "accurate_peak_lineouts"
+
+	for i in range(len(initial_hkl_pos_est)):
+		
+		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
+		in_soh = cwd + "/" + acc_dir + "/" + peak_dir + "/big_diagonal_in.soh"
+		f = open(in_soh, 'w')
 	
 				
 ############################################################################
