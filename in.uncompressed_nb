@@ -1,0 +1,38 @@
+# INITIALISATION
+
+units metal
+pair_style eam/alloy
+
+#defaults
+dimension 3
+boundary p p p
+atom_style atomic
+
+# ATOM DEFINITION
+
+lattice bcc 3.3004
+
+variable x equal 60
+variable y equal 60
+variable z equal 60
+
+region simbox block 0 $x 0 $y 0 $z
+create_box 1 simbox
+create_atoms 1 box
+
+# SETTINGS
+
+pair_coeff * * /data/code/potentials/Nb.eam.alloy Nb
+velocity all create 300.0 62974629 dist gaussian
+fix 1 all nvt temp 300.0 300.0 0.1
+
+dump myDump all atom 10000 nb_uncompressed_300K.atom
+
+#defaults
+timestep 0.001
+
+# RUN
+
+# thermalisng for 10 ps
+run 10000
+

@@ -56,8 +56,9 @@ def stopwatch(t0, tpy0):
 ########################################################################
 #This function creates bcc positions. It takes as input range_num (int), negative_k (bool), and remove_000 (bool). As output it creates gsqr_est (list) and pos_est (list).
 
-def make_bcc(range_num, negative_k, remove_000): 
+def make_bcc(gsqr_max, negative_k, remove_000): 
 
+	import numpy as np
 
 	# Variables in this function:
 	# negative_k -> this bool determines whether negative values of hkl are included.
@@ -71,19 +72,22 @@ def make_bcc(range_num, negative_k, remove_000):
 	# i -> used as a looping variable to write the log file and print to the console.
 
 
-
+	g_max = int(np.sqrt(gsqr_max)) + 1
+	
+	print g_max
+	
 	if negative_k == True:
 	
-		x_est = range(-range_num+1, range_num)
-		y_est = range(-range_num+1, range_num)
-		z_est = range(-range_num+1, range_num)
+		x_est = range(-g_max+1, g_max)
+		y_est = range(-g_max+1, g_max)
+		z_est = range(-g_max+1, g_max)
 
 		
 	elif negative_k == False:
 	
-		x_est = range(0, range_num)
-		y_est = range(0, range_num)
-		z_est = range(0, range_num)
+		x_est = range(0, g_max)
+		y_est = range(0, g_max)
+		z_est = range(0, g_max)
 
 
 
@@ -126,7 +130,21 @@ def make_bcc(range_num, negative_k, remove_000):
 
 						pass 	
 
+
+	i = 0
+	
+	while i < len(pos_est):
+	
+		if gsqr_est[i] > gsqr_max:
 		
+			gsqr_est.remove(gsqr_est[i])
+			pos_est.remove(pos_est[i])
+			
+		else:
+		
+			i += 1
+
+
 	
 	for i in range(len(pos_est)):
 		print "\nPeak " + str(i+1) + " of " + str(len(pos_est)) + " estimated: " + str(pos_est[i]) + " with G^2 = " + str(gsqr_est[i])
@@ -136,7 +154,7 @@ def make_bcc(range_num, negative_k, remove_000):
 	f = open("log.pkfd", "w")
 	
 	f.write("\nFunction make_bcc called with input:\n"
-	"range_num = " + str(range_num) + "\n"
+	"gsqr_max = " + str(gsqr_max) + "\n"
 	"negative_k = " + str(negative_k) + "\n"
 	"remove_000 = " + str(remove_000) + "\n"
 	"\nFunction make_bcc returned:\n")
@@ -144,7 +162,7 @@ def make_bcc(range_num, negative_k, remove_000):
 		f.write( "Peak " + str(i+1) + " of " + str(len(pos_est)) + " estimated: " + str(pos_est[i]) + " with G^2 = " + str(gsqr_est[i]) + "\n")
 	
 	f.close()
-	
+
 	
 	return gsqr_est, pos_est
 	
@@ -1427,8 +1445,11 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 						
 						continue
 					
+				average_breadth = (abs(k_acc_start - accurate_pos_est[i][j]) + abs(k_acc_end - accurate_pos_est[i][j])) * 0.5
 				
-				accurate_breadths[i][j] = [k_acc_start, k_acc_end]
+				
+				
+				accurate_breadths[i][j] = [accurate_pos_est[i][j] - average_breadth, accurate_pos_est[i][j] + average_breadth]
 				
 				print str(peak_dir)
 				print "k_start = " + str(accurate_breadths[i][j][0]) 
@@ -1557,7 +1578,7 @@ def get_peak_intensities(source, pos_est, compression_factor, initial_hkl_pos_es
 	t.write("\nmod.get_peak_intensities took \t\t\t" + str(tt) + " s to complete.")	
 
 
-	return;
+	return accurate_breadths;
 
 
 ##################################################################
@@ -1585,8 +1606,9 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 
 
 	simple_intensity_integrated = [0] * len(pos_est) # Stores a simple sum of intensities of each peak.
+	sum_intensity = [0] * len(pos_est)
 	complex_intensity_integrated = [0] * len(pos_est) # Stores the sum of intensity*volumes for each peak.
-
+	point_intensity = [0] * len(pos_est)
 	
 	gsqr_integrated = [0] * len(pos_est)
 	
@@ -1606,7 +1628,6 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	"a_lattice = " + str(a_lattice) + "\n")
 
 	first_peak_dir = str(initial_hkl_pos_est[0][0]) + str(initial_hkl_pos_est[0][1]) + str(initial_hkl_pos_est[0][2])
-		
 
 		
 	first_soh_out = str(cwd) + "/soh_output/" + source + "." + str(timestep)+ "." + first_peak_dir+ ".ft" # Stores the name of the soh output file.
@@ -1710,7 +1731,11 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 		intensity_datafile = str(cwd) + "/plots_of_data/" + peak_dir + "/intensity_vs_position.dat"		
 
-		simple_intensity_integrated[i] = sum(tmp_intensity)
+		sum_intensity[i] = sum(tmp_intensity)
+		
+		simple_intensity_integrated[i] = sum(tmp_intensity) * dk_vol
+		
+		point_intensity[i] = max(tmp_intensity)
 		
 		intensity_volume = list(tmp_intensity)
 	
@@ -1721,8 +1746,11 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 		
 		complex_intensity_integrated[i] = sum(intensity_volume)
 	
-		f.write("\nIntegrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i]) + "\n"
-		"Simple sum of intensities = " + str(simple_intensity_integrated[i]) )
+		f.write("\nComplex integrated intensity of " + str(miller_pos_est[i]) + " sought at " + str(pos_est[i]) + " = " + str(complex_intensity_integrated[i]) + "\n"
+		"Simple integrated intensity = " + str(simple_intensity_integrated[i]) + "\n"
+		"Sum of intensities = " + str(sum_intensity[i]) + "\n"
+		"Peak intensity = " + str(point_intensity[i]) + "\n"
+		)
 		
 		
 		if make_plots == True:
@@ -1903,6 +1931,57 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	
 	g.close()
 	
+	"""
+	
+	# This section works on the sum_intensity.
+
+	sum_intensity_max_ind = np.argmax(sum_intensity)
+
+
+	ln_sum_intensity = np.log(sum_intensity)
+	
+	
+	ln_norm_sum_intensity = np.log(sum_intensity/max(sum_intensity))
+	
+	
+	ln_norm_sum_intensity.tolist()
+	
+	
+	g = open("ln_sum_intensity_vs_g_squared.dat", "w")
+	
+	g.write("ln_sum_intensity g_squared h k l\n")
+	
+	for i in range(len(pos_est)):
+		
+		g.write(str(ln_sum_intensity[i]) + " " + str(gsqr_integrated[i]) + " " + str(miller_pos_est[i][0]) + " " + str(miller_pos_est[i][1]) + " " + str(miller_pos_est[i][2]) + "\n")
+	
+	g.close()
+	
+	print ln_sum_intensity
+	
+	# This section works on the point_intensity.
+
+	ln_peak_intensity = np.log(point_intensity)
+	
+	
+	ln_norm_peak_intensity = np.log(point_intensity/max(point_intensity))
+	
+	
+	ln_norm_peak_intensity.tolist()
+	
+	
+	g = open("ln_peak_intensity_vs_g_squared.dat", "w")
+	
+	g.write("ln_peak_intensity g_squared h k l\n")
+	
+	for i in range(len(pos_est)):
+		
+		g.write(str(ln_peak_intensity[i]) + " " + str(gsqr_integrated[i]) + " " + str(miller_pos_est[i][0]) + " " + str(miller_pos_est[i][1]) + " " + str(miller_pos_est[i][2]) + "\n")
+	
+	g.close()
+	
+	print ln_peak_intensity
+	"""
 	#This part makes the final log entry for the function.	
 	
 	f.write("\nFunction get_ln_intensity returned:\n"
@@ -1916,7 +1995,7 @@ def get_ln_intensity(pos_est, initial_hkl_pos_est, miller_pos_est, source, show_
 	t = open('time.pkfd', 'a')
 	t.write("\nmod.get_ln_intensity took \t\t\t" + str(tt) + " s to complete.")
 
-	return pos_integrated, gsqr_integrated, ln_complex_intensity_integrated, ln_norm_complex_intensity_integrated, ln_simple_intensity_integrated, ln_norm_simple_intensity_integrated
+	return pos_integrated, gsqr_integrated, ln_complex_intensity_integrated, ln_norm_complex_intensity_integrated, ln_simple_intensity_integrated, ln_norm_simple_intensity_integrated # ln_sum_intensity, ln_peak_intensity
 	
 	
 ################################################################
@@ -2510,19 +2589,24 @@ def profile_peaks(source, timestep, initial_hkl_pos_est, make_plots):
 ############################################################################
 # This function performs lineouts across the diagonals of the 	
 	
-def big_diagonals():
+def big_diagonals(accurate_breadths):
 
 	import os
 
 	cwd = os.getcwd()
 
 	acc_dir = "accurate_peak_lineouts"
-
+	
+	print accurate_breadths	
+	
 	for i in range(len(initial_hkl_pos_est)):
 		
 		peak_dir = str(initial_hkl_pos_est[i][0]) + str(initial_hkl_pos_est[i][1]) + str(initial_hkl_pos_est[i][2])
 		in_soh = cwd + "/" + acc_dir + "/" + peak_dir + "/big_diagonal_in.soh"
 		f = open(in_soh, 'w')
+		
+	return;
+		
 	
 				
 ############################################################################
